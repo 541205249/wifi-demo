@@ -1,2 +1,0 @@
-# wifi-demo
-wifi-demo
