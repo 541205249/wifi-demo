@@ -15,6 +15,7 @@
         android:text="WiFi模块通信服务器"
         android:textSize="20sp"
         android:textStyle="bold"
+        android:layout_marginTop="20dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />

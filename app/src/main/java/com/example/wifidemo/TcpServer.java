@@ -2,18 +2,18 @@ package com.example.wifidemo;
 
 import android.util.Log;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class TcpServer {
     private static final String TAG = "TcpServer";
-    private static final int DEFAULT_PORT = 8888;
+    private static final int DEFAULT_PORT = 9111;
 
     private ServerSocket serverSocket;
     private ExecutorService executorService;
@@ -111,7 +111,7 @@ public class TcpServer {
 
     public void sendMessageToClient(String message) {
         if (clientHandler != null && clientHandler.isConnected()) {
-            clientHandler.sendMessage(message);
+            executorService.execute(() -> clientHandler.sendMessage(message));
         } else {
             Log.w(TAG, "No client connected");
         }
@@ -119,8 +119,8 @@ public class TcpServer {
 
     private class ClientHandler implements Runnable {
         private Socket socket;
-        private PrintWriter out;
-        private BufferedReader in;
+        private OutputStream out;
+        private InputStream in;
         private boolean connected = true;
 
         public ClientHandler(Socket socket) {
@@ -130,14 +130,19 @@ public class TcpServer {
         @Override
         public void run() {
             try {
-                out = new PrintWriter(socket.getOutputStream(), true);
-                in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                out = socket.getOutputStream();
+                in = socket.getInputStream();
 
-                String inputLine;
-                while (connected && (inputLine = in.readLine()) != null) {
-                    Log.i(TAG, "Received from client: " + inputLine);
-                    if (messageListener != null) {
-                        messageListener.onMessageReceived(inputLine);
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+
+                while (connected && (bytesRead = in.read(buffer)) != -1) {
+                    if (bytesRead > 0) {
+                        String received = new String(buffer, 0, bytesRead, StandardCharsets.UTF_8);
+                        Log.i(TAG, "Received from client: " + received + " (bytes: " + bytesRead + ")");
+                        if (messageListener != null) {
+                            messageListener.onMessageReceived(received);
+                        }
                     }
                 }
             } catch (IOException e) {
@@ -154,8 +159,13 @@ public class TcpServer {
 
         public void sendMessage(String message) {
             if (out != null) {
-                out.println(message);
-                Log.i(TAG, "Sent to client: " + message);
+                try {
+                    out.write((message + "\n").getBytes(StandardCharsets.UTF_8));
+                    out.flush();
+                    Log.i(TAG, "Sent to client: " + message);
+                } catch (IOException e) {
+                    Log.e(TAG, "Failed to send message", e);
+                }
             }
         }
 
