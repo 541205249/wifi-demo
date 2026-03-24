@@ -17,17 +17,14 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
+import com.example.wifidemo.device.DeviceManager;
+
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -40,7 +37,10 @@ public class TcpServerService extends Service {
     private ServerSocket serverSocket;
     private ExecutorService executorService;
     private boolean isRunning = false;
-    private final Map<String, ClientHandler> clientMap = new ConcurrentHashMap<>();
+    
+    // 设备管理器
+    private DeviceManager deviceManager;
+    
     private OnMessageListener messageListener;
     private Handler mainHandler;
     private String localIpAddress;
@@ -48,6 +48,9 @@ public class TcpServerService extends Service {
     // 电源锁和 WiFi 锁，确保后台持续运行
     private PowerManager.WakeLock wakeLock;
     private WifiManager.WifiLock wifiLock;
+    
+    // 心跳管理器
+    private HeartbeatManager heartbeatManager;
 
     public interface OnMessageListener {
         void onMessageReceived(String clientId, String message);
@@ -75,6 +78,7 @@ public class TcpServerService extends Service {
         mainHandler = new Handler(Looper.getMainLooper());
         createNotificationChannel();
         acquireWakeLocks();
+        initHeartbeatManager();
     }
 
     @Override
@@ -97,6 +101,10 @@ public class TcpServerService extends Service {
                     "TcpServerService::wakeLock"
                 );
                 wakeLock.setReferenceCounted(false);
+                if (!wakeLock.isHeld()) {
+                    wakeLock.acquire();
+                    Log.i(TAG, "Power wake lock acquired");
+                }
             }
             
             WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
@@ -106,6 +114,10 @@ public class TcpServerService extends Service {
                     "TcpServerService::wifiLock"
                 );
                 wifiLock.setReferenceCounted(false);
+                if (!wifiLock.isHeld()) {
+                    wifiLock.acquire();
+                    Log.i(TAG, "WiFi wake lock acquired");
+                }
             }
         } catch (Exception e) {
             Log.e(TAG, "Failed to acquire wake locks", e);
@@ -142,6 +154,8 @@ public class TcpServerService extends Service {
         Log.i(TAG, "Service destroyed");
         stopServer();
         releaseWakeLocks();
+        destroyDeviceManager();
+        destroyHeartbeatManager();
     }
 
     public void setOnMessageListener(OnMessageListener listener) {
@@ -160,7 +174,7 @@ public class TcpServerService extends Service {
      * 获取所有已连接的客户端 ID 列表
      */
     public String[] getConnectedClientIds() {
-        return clientMap.keySet().toArray(new String[0]);
+        return deviceManager != null ? deviceManager.getConnectedDeviceIds() : new String[0];
     }
 
     /**
@@ -169,11 +183,8 @@ public class TcpServerService extends Service {
      * @param message 消息内容
      */
     public void sendMessageToClient(String clientId, String message) {
-        ClientHandler handler = clientMap.get(clientId);
-        if (handler != null && handler.isConnected()) {
-            executorService.execute(() -> handler.sendMessage(message));
-        } else {
-            Log.w(TAG, "Client not found or not connected: " + clientId);
+        if (deviceManager != null) {
+            deviceManager.sendMessageToDevice(clientId, message);
         }
     }
 
@@ -182,24 +193,18 @@ public class TcpServerService extends Service {
      * @param message 消息内容
      */
     public void broadcastMessage(String message) {
-        if (clientMap.isEmpty()) {
-            Log.w(TAG, "No clients connected");
-            return;
+        if (deviceManager != null) {
+            deviceManager.broadcastMessage(message);
+        } else {
+            Log.w(TAG, "DeviceManager not initialized, cannot broadcast");
         }
-        
-        for (ClientHandler handler : clientMap.values()) {
-            if (handler.isConnected()) {
-                executorService.execute(() -> handler.sendMessage(message));
-            }
-        }
-        Log.i(TAG, "Broadcasted message to " + clientMap.size() + " clients");
     }
 
     /**
      * 获取已连接的客户端数量
      */
     public int getConnectedClientCount() {
-        return clientMap.size();
+        return deviceManager != null ? deviceManager.getConnectedDeviceCount() : 0;
     }
 
     private void startServer() {
@@ -210,6 +215,12 @@ public class TcpServerService extends Service {
 
         try {
             executorService = Executors.newCachedThreadPool();
+            
+            // 在启动服务器时初始化 DeviceManager，确保 executorService 不为 null
+            if (deviceManager == null) {
+                initDeviceManager();
+            }
+            
             serverSocket = new ServerSocket(ServerConstance.SERVER_PORT);
             isRunning = true;
 
@@ -233,9 +244,16 @@ public class TcpServerService extends Service {
                         Log.i(TAG, "Client connected: " + clientSocket.getInetAddress());
 
                         String clientId = clientSocket.getInetAddress().getHostAddress();
-                        ClientHandler clientHandler = new ClientHandler(clientSocket, clientId);
-                        clientMap.put(clientId, clientHandler);
-                        executorService.execute(clientHandler);
+                        
+                        // 使用 DeviceManager 管理设备连接
+                        if (deviceManager != null) {
+                            deviceManager.addDevice(clientSocket, clientId);
+                        }
+                        
+                        // 启动心跳监控
+                        if (heartbeatManager != null) {
+                            heartbeatManager.onClientConnected(clientId);
+                        }
 
                         if (messageListener != null) {
                             mainHandler.post(() -> messageListener.onClientConnected(clientId));
@@ -269,11 +287,10 @@ public class TcpServerService extends Service {
         Log.i(TAG, "Stopping server...");
         isRunning = false;
 
-        // 关闭所有客户端连接
-        for (ClientHandler handler : clientMap.values()) {
-            handler.stop();
+        // 关闭所有设备连接
+        if (deviceManager != null) {
+            deviceManager.closeAllDevices();
         }
-        clientMap.clear();
 
         if (serverSocket != null) {
             try {
@@ -345,85 +362,72 @@ public class TcpServerService extends Service {
         }
     }
 
-    private class ClientHandler implements Runnable {
-        private Socket socket;
-        private OutputStream out;
-        private InputStream in;
-        private String clientId;
-        private boolean connected = true;
-
-        public ClientHandler(Socket socket, String clientId) {
-            this.socket = socket;
-            this.clientId = clientId;
-        }
-
-        @Override
-        public void run() {
-            try {
-                out = socket.getOutputStream();
-                in = socket.getInputStream();
-
-                byte[] buffer = new byte[1024];
-                int bytesRead;
-
-                while (connected && (bytesRead = in.read(buffer)) != -1) {
-                    if (bytesRead > 0) {
-                        String received = new String(buffer, 0, bytesRead, StandardCharsets.UTF_8);
-                        Log.i(TAG, "Received from client [" + clientId + "]: " + received + " (bytes: " + bytesRead + ")");
-                        if (messageListener != null) {
-                            mainHandler.post(() -> messageListener.onMessageReceived(clientId, received));
-                        }
-                    }
-                }
-            } catch (IOException e) {
-                if (connected) {
-                    Log.e(TAG, "Client [" + clientId + "] disconnected unexpectedly", e);
-                    if (messageListener != null) {
-                        mainHandler.post(() -> messageListener.onClientDisconnected(clientId));
-                    }
-                }
-            } finally {
-                cleanup();
+    /**
+     * 初始化设备管理器
+     */
+    private void initDeviceManager() {
+        deviceManager = new DeviceManager(executorService);
+        deviceManager.setDeviceListener(new DeviceManager.DeviceListener() {
+            @Override
+            public void onDeviceConnected(String deviceId) {
+                Log.i(TAG, "Device connected: " + deviceId);
             }
-        }
 
-        public void sendMessage(String message) {
-            if (out != null) {
-                try {
-                    out.write((message + "\n").getBytes(StandardCharsets.UTF_8));
-                    out.flush();
-                    Log.i(TAG, "Sent to client [" + clientId + "]: " + message);
-                } catch (IOException e) {
-                    Log.e(TAG, "Failed to send message to client [" + clientId + "]", e);
+            @Override
+            public void onDeviceDisconnected(String deviceId) {
+                Log.i(TAG, "Device disconnected: " + deviceId);
+                // 通知心跳管理器停止心跳
+                if (heartbeatManager != null) {
+                    heartbeatManager.onClientDisconnected(deviceId);
                 }
             }
-        }
 
-        public boolean isConnected() {
-            return connected && socket != null && !socket.isClosed();
-        }
-
-        public void stop() {
-            connected = false;
-            cleanup();
-        }
-
-        private void cleanup() {
-            try {
-                if (in != null) in.close();
-                if (out != null) out.close();
-                if (socket != null) socket.close();
-            } catch (IOException e) {
-                Log.e(TAG, "Error cleaning up client connection [" + clientId + "]", e);
+            @Override
+            public void onMessageReceived(String deviceId, String message) {
+                // 通知心跳管理器重置计时器
+                if (heartbeatManager != null) {
+                    heartbeatManager.onMessageReceived(deviceId);
+                }
+                
+                // 通知外部监听器
+                if (messageListener != null) {
+                    mainHandler.post(() -> messageListener.onMessageReceived(deviceId, message));
+                }
             }
-            
-            // 从客户端列表中移除
-            clientMap.remove(clientId);
-            socket = null;
-            
-            if (messageListener != null) {
-                mainHandler.post(() -> messageListener.onClientDisconnected(clientId));
-            }
+        });
+        Log.i(TAG, "DeviceManager initialized");
+    }
+    
+    /**
+     * 销毁设备管理器
+     */
+    private void destroyDeviceManager() {
+        if (deviceManager != null) {
+            deviceManager.closeAllDevices();
+            deviceManager = null;
         }
+        Log.i(TAG, "DeviceManager destroyed");
+    }
+    
+    /**
+     * 初始化心跳管理器
+     */
+    private void initHeartbeatManager() {
+        heartbeatManager = HeartbeatManager.getInstance();
+        heartbeatManager.setHeartbeatSender((clientId, message) -> {
+            sendMessageToClient(clientId, message);
+        });
+        Log.i(TAG, "HeartbeatManager initialized");
+    }
+    
+    /**
+     * 销毁心跳管理器
+     */
+    private void destroyHeartbeatManager() {
+        if (heartbeatManager != null) {
+            heartbeatManager.destroy();
+            heartbeatManager = null;
+        }
+        Log.i(TAG, "HeartbeatManager destroyed");
     }
 }

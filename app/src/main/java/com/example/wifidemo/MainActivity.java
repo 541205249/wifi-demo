@@ -6,11 +6,14 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.PowerManager;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -88,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
         mainHandler = new Handler(Looper.getMainLooper());
 
         checkNotificationPermission();
+        requestBatteryOptimizationWhitelist(); // 申请电池优化白名单
         localIpAddress = getLocalIpAddress();
         if (localIpAddress != null) {
             btnStartStop.setEnabled(true);
@@ -358,12 +362,50 @@ public class MainActivity extends AppCompatActivity {
         }
         return null;
     }
+    
+    /**
+     * 申请电池优化白名单，防止系统杀后台
+     */
+    private void requestBatteryOptimizationWhitelist() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+            String packageName = getPackageName();
+            
+            if (powerManager != null && !powerManager.isIgnoringBatteryOptimizations(packageName)) {
+                try {
+                    Intent intent = new Intent();
+                    intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+                    intent.setData(android.net.Uri.parse("package:" + packageName));
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(intent);
+                    appendLog("已申请电池优化白名单");
+                } catch (Exception e) {
+                    appendLog("申请电池优化白名单失败：" + e.getMessage());
+                    // 如果直接申请失败，引导用户手动设置
+                    try {
+                        Intent intent = new Intent();
+                        intent.setAction(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(intent);
+                        Toast.makeText(this, "请手动将本应用加入电池优化白名单", Toast.LENGTH_LONG).show();
+                    } catch (Exception e2) {
+                        appendLog("打开设置页面失败：" + e2.getMessage());
+                    }
+                }
+            }
+        }
+    }
 
     @Override
     protected void onPause() {
         super.onPause();
         appendLog("App 进入后台");
         // 不在后台解绑服务，保持 TCP 连接
+        
+        // 确保 WiFi 锁和电源锁在后台仍然有效
+        if (tcpServerService != null) {
+            appendLog("服务未解绑，TCP 连接保持");
+        }
     }
 
     @Override
