@@ -5,11 +5,13 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
+import android.net.wifi.WifiManager;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -24,6 +26,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -36,15 +40,19 @@ public class TcpServerService extends Service {
     private ServerSocket serverSocket;
     private ExecutorService executorService;
     private boolean isRunning = false;
-    private ClientHandler clientHandler;
+    private final Map<String, ClientHandler> clientMap = new ConcurrentHashMap<>();
     private OnMessageListener messageListener;
     private Handler mainHandler;
     private String localIpAddress;
+    
+    // 电源锁和 WiFi 锁，确保后台持续运行
+    private PowerManager.WakeLock wakeLock;
+    private WifiManager.WifiLock wifiLock;
 
     public interface OnMessageListener {
-        void onMessageReceived(String message);
-        void onClientConnected();
-        void onClientDisconnected();
+        void onMessageReceived(String clientId, String message);
+        void onClientConnected(String clientId);
+        void onClientDisconnected(String clientId);
         void onError(String error);
         void onServerStarted(String ipAddress);
     }
@@ -66,6 +74,7 @@ public class TcpServerService extends Service {
         Log.i(TAG, "Service created");
         mainHandler = new Handler(Looper.getMainLooper());
         createNotificationChannel();
+        acquireWakeLocks();
     }
 
     @Override
@@ -74,6 +83,51 @@ public class TcpServerService extends Service {
         startForeground(NOTIFICATION_ID, createNotification("TCP 服务器正在启动..."));
         startServer();
         return START_STICKY;
+    }
+    
+    /**
+     * 获取电源锁和 WiFi 锁，确保后台持续运行
+     */
+    private void acquireWakeLocks() {
+        try {
+            PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+            if (powerManager != null) {
+                wakeLock = powerManager.newWakeLock(
+                    PowerManager.PARTIAL_WAKE_LOCK,
+                    "TcpServerService::wakeLock"
+                );
+                wakeLock.setReferenceCounted(false);
+            }
+            
+            WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+            if (wifiManager != null) {
+                wifiLock = wifiManager.createWifiLock(
+                    WifiManager.WIFI_MODE_FULL_HIGH_PERF,
+                    "TcpServerService::wifiLock"
+                );
+                wifiLock.setReferenceCounted(false);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to acquire wake locks", e);
+        }
+    }
+    
+    /**
+     * 释放电源锁和 WiFi 锁
+     */
+    private void releaseWakeLocks() {
+        try {
+            if (wakeLock != null && wakeLock.isHeld()) {
+                wakeLock.release();
+                wakeLock = null;
+            }
+            if (wifiLock != null && wifiLock.isHeld()) {
+                wifiLock.release();
+                wifiLock = null;
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to release wake locks", e);
+        }
     }
 
     @Nullable
@@ -87,6 +141,7 @@ public class TcpServerService extends Service {
         super.onDestroy();
         Log.i(TAG, "Service destroyed");
         stopServer();
+        releaseWakeLocks();
     }
 
     public void setOnMessageListener(OnMessageListener listener) {
@@ -101,12 +156,50 @@ public class TcpServerService extends Service {
         return localIpAddress;
     }
 
-    public void sendMessageToClient(String message) {
-        if (clientHandler != null && clientHandler.isConnected()) {
-            executorService.execute(() -> clientHandler.sendMessage(message));
+    /**
+     * 获取所有已连接的客户端 ID 列表
+     */
+    public String[] getConnectedClientIds() {
+        return clientMap.keySet().toArray(new String[0]);
+    }
+
+    /**
+     * 向指定客户端发送消息
+     * @param clientId 客户端 ID（IP 地址）
+     * @param message 消息内容
+     */
+    public void sendMessageToClient(String clientId, String message) {
+        ClientHandler handler = clientMap.get(clientId);
+        if (handler != null && handler.isConnected()) {
+            executorService.execute(() -> handler.sendMessage(message));
         } else {
-            Log.w(TAG, "No client connected");
+            Log.w(TAG, "Client not found or not connected: " + clientId);
         }
+    }
+
+    /**
+     * 向所有客户端发送消息
+     * @param message 消息内容
+     */
+    public void broadcastMessage(String message) {
+        if (clientMap.isEmpty()) {
+            Log.w(TAG, "No clients connected");
+            return;
+        }
+        
+        for (ClientHandler handler : clientMap.values()) {
+            if (handler.isConnected()) {
+                executorService.execute(() -> handler.sendMessage(message));
+            }
+        }
+        Log.i(TAG, "Broadcasted message to " + clientMap.size() + " clients");
+    }
+
+    /**
+     * 获取已连接的客户端数量
+     */
+    public int getConnectedClientCount() {
+        return clientMap.size();
     }
 
     private void startServer() {
@@ -139,11 +232,13 @@ public class TcpServerService extends Service {
                         Socket clientSocket = serverSocket.accept();
                         Log.i(TAG, "Client connected: " + clientSocket.getInetAddress());
 
-                        clientHandler = new ClientHandler(clientSocket);
+                        String clientId = clientSocket.getInetAddress().getHostAddress();
+                        ClientHandler clientHandler = new ClientHandler(clientSocket, clientId);
+                        clientMap.put(clientId, clientHandler);
                         executorService.execute(clientHandler);
 
                         if (messageListener != null) {
-                            mainHandler.post(() -> messageListener.onClientConnected());
+                            mainHandler.post(() -> messageListener.onClientConnected(clientId));
                         }
                     } catch (IOException e) {
                         if (isRunning) {
@@ -174,9 +269,11 @@ public class TcpServerService extends Service {
         Log.i(TAG, "Stopping server...");
         isRunning = false;
 
-        if (clientHandler != null) {
-            clientHandler.stop();
+        // 关闭所有客户端连接
+        for (ClientHandler handler : clientMap.values()) {
+            handler.stop();
         }
+        clientMap.clear();
 
         if (serverSocket != null) {
             try {
@@ -252,10 +349,12 @@ public class TcpServerService extends Service {
         private Socket socket;
         private OutputStream out;
         private InputStream in;
+        private String clientId;
         private boolean connected = true;
 
-        public ClientHandler(Socket socket) {
+        public ClientHandler(Socket socket, String clientId) {
             this.socket = socket;
+            this.clientId = clientId;
         }
 
         @Override
@@ -270,17 +369,17 @@ public class TcpServerService extends Service {
                 while (connected && (bytesRead = in.read(buffer)) != -1) {
                     if (bytesRead > 0) {
                         String received = new String(buffer, 0, bytesRead, StandardCharsets.UTF_8);
-                        Log.i(TAG, "Received from client: " + received + " (bytes: " + bytesRead + ")");
+                        Log.i(TAG, "Received from client [" + clientId + "]: " + received + " (bytes: " + bytesRead + ")");
                         if (messageListener != null) {
-                            mainHandler.post(() -> messageListener.onMessageReceived(received));
+                            mainHandler.post(() -> messageListener.onMessageReceived(clientId, received));
                         }
                     }
                 }
             } catch (IOException e) {
                 if (connected) {
-                    Log.e(TAG, "Client disconnected unexpectedly", e);
+                    Log.e(TAG, "Client [" + clientId + "] disconnected unexpectedly", e);
                     if (messageListener != null) {
-                        mainHandler.post(() -> messageListener.onClientDisconnected());
+                        mainHandler.post(() -> messageListener.onClientDisconnected(clientId));
                     }
                 }
             } finally {
@@ -293,9 +392,9 @@ public class TcpServerService extends Service {
                 try {
                     out.write((message + "\n").getBytes(StandardCharsets.UTF_8));
                     out.flush();
-                    Log.i(TAG, "Sent to client: " + message);
+                    Log.i(TAG, "Sent to client [" + clientId + "]: " + message);
                 } catch (IOException e) {
-                    Log.e(TAG, "Failed to send message", e);
+                    Log.e(TAG, "Failed to send message to client [" + clientId + "]", e);
                 }
             }
         }
@@ -315,11 +414,15 @@ public class TcpServerService extends Service {
                 if (out != null) out.close();
                 if (socket != null) socket.close();
             } catch (IOException e) {
-                Log.e(TAG, "Error cleaning up client connection", e);
+                Log.e(TAG, "Error cleaning up client connection [" + clientId + "]", e);
             }
+            
+            // 从客户端列表中移除
+            clientMap.remove(clientId);
             socket = null;
+            
             if (messageListener != null) {
-                mainHandler.post(() -> messageListener.onClientDisconnected());
+                mainHandler.post(() -> messageListener.onClientDisconnected(clientId));
             }
         }
     }

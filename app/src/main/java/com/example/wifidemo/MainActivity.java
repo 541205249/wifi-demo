@@ -12,9 +12,11 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.text.TextUtils;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ScrollView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -38,6 +40,9 @@ public class MainActivity extends AppCompatActivity {
     private Button btnStartStop;
     private EditText etMessage;
     private Button btnSend;
+    private Button btnSendToClient;
+    private Spinner spinnerClients;
+    private TextView tvClientCount;
     private TextView tvLog;
     private ScrollView svLog;
 
@@ -46,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean isBound = false;
     private boolean isServiceStarted = false;
     private String localIpAddress;
+    private ArrayAdapter<String> clientAdapter;
 
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -94,7 +100,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         Intent serviceIntent = new Intent(this, TcpServerService.class);
-        bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
+        startForegroundService(serviceIntent);
+        bindService(serviceIntent, serviceConnection, 0);
     }
 
     private void checkNotificationPermission() {
@@ -127,23 +134,25 @@ public class MainActivity extends AppCompatActivity {
 
         tcpServerService.setOnMessageListener(new TcpServerService.OnMessageListener() {
             @Override
-            public void onMessageReceived(String message) {
-                mainHandler.post(() -> appendLog("收到模块消息：" + message));
+            public void onMessageReceived(String clientId, String message) {
+                mainHandler.post(() -> appendLog("收到模块 [" + clientId + "] 消息：" + message));
             }
-
+        
             @Override
-            public void onClientConnected() {
+            public void onClientConnected(String clientId) {
                 mainHandler.post(() -> {
-                    appendLog("客户端已连接");
-                    Toast.makeText(MainActivity.this, "WiFi模块已连接", Toast.LENGTH_SHORT).show();
+                    appendLog("客户端已连接：" + clientId);
+                    Toast.makeText(MainActivity.this, "WiFi 模块已连接：" + clientId, Toast.LENGTH_SHORT).show();
+                    updateClientList();
                 });
             }
-
+        
             @Override
-            public void onClientDisconnected() {
+            public void onClientDisconnected(String clientId) {
                 mainHandler.post(() -> {
-                    appendLog("客户端已断开");
-                    Toast.makeText(MainActivity.this, "WiFi模块已断开", Toast.LENGTH_SHORT).show();
+                    appendLog("客户端已断开：" + clientId);
+                    Toast.makeText(MainActivity.this, "WiFi 模块已断开：" + clientId, Toast.LENGTH_SHORT).show();
+                    updateClientList();
                 });
             }
 
@@ -178,17 +187,27 @@ public class MainActivity extends AppCompatActivity {
         btnStartStop = findViewById(R.id.btnStartStop);
         etMessage = findViewById(R.id.etMessage);
         btnSend = findViewById(R.id.btnSend);
+        btnSendToClient = findViewById(R.id.btnSendToClient);
+        spinnerClients = findViewById(R.id.spinnerClients);
+        tvClientCount = findViewById(R.id.tvClientCount);
         tvLog = findViewById(R.id.tvLog);
         svLog = findViewById(R.id.svLog);
 
         tvPort.setText("端口：" + ServerConstance.SERVER_PORT);
         etMessage.setEnabled(false);
         btnSend.setEnabled(false);
+        btnSendToClient.setEnabled(false);
+        
+        // 初始化 Spinner 适配器
+        clientAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item);
+        clientAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerClients.setAdapter(clientAdapter);
     }
 
     private void setupListeners() {
         btnStartStop.setOnClickListener(v -> toggleServer());
-        btnSend.setOnClickListener(v -> sendMessage());
+        btnSend.setOnClickListener(v -> broadcastMessage());
+        btnSendToClient.setOnClickListener(v -> sendMessageToSelectedClient());
     }
 
     private void toggleServer() {
@@ -230,6 +249,7 @@ public class MainActivity extends AppCompatActivity {
             tvServerInfo.setTextColor(getColor(android.R.color.holo_green_dark));
             etMessage.setEnabled(true);
             btnSend.setEnabled(true);
+            btnSendToClient.setEnabled(tcpServerService.getConnectedClientCount() > 0);
 
             String ip = tcpServerService.getLocalIpAddress();
             if (ip != null) {
@@ -237,16 +257,39 @@ public class MainActivity extends AppCompatActivity {
             } else if (localIpAddress != null) {
                 tvIP.setText("IP 地址：" + localIpAddress);
             }
+            
+            updateClientList();
         } else {
             btnStartStop.setText("启动服务器");
             tvServerInfo.setText("服务器状态：已停止");
             tvServerInfo.setTextColor(getColor(android.R.color.darker_gray));
             etMessage.setEnabled(false);
             btnSend.setEnabled(false);
+            btnSendToClient.setEnabled(false);
         }
     }
+    
+    /**
+     * 更新客户端列表
+     */
+    private void updateClientList() {
+        if (!isBound || tcpServerService == null) return;
+        
+        String[] clientIds = tcpServerService.getConnectedClientIds();
+        int clientCount = tcpServerService.getConnectedClientCount();
+        
+        tvClientCount.setText("已连接客户端：" + clientCount + " 个");
+        
+        clientAdapter.clear();
+        for (String clientId : clientIds) {
+            clientAdapter.add("模块：" + clientId);
+        }
+        clientAdapter.notifyDataSetChanged();
+        
+        btnSendToClient.setEnabled(clientCount > 0);
+    }
 
-    private void sendMessage() {
+    private void broadcastMessage() {
         if (!isBound || tcpServerService == null) {
             return;
         }
@@ -257,9 +300,34 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        tcpServerService.sendMessageToClient(message);
-        appendLog("发送到模块：" + message);
-        etMessage.setText("");
+        tcpServerService.broadcastMessage(message);
+        appendLog("广播到所有模块：" + message);
+//        etMessage.setText("");
+    }
+    
+    private void sendMessageToSelectedClient() {
+        if (!isBound || tcpServerService == null) {
+            return;
+        }
+        
+        int selectedPosition = spinnerClients.getSelectedItemPosition();
+        if (selectedPosition < 0) {
+            Toast.makeText(this, "请选择要发送的模块", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String message = etMessage.getText().toString().trim();
+        if (TextUtils.isEmpty(message)) {
+            Toast.makeText(this, "请输入消息内容", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        String selectedItem = (String) spinnerClients.getSelectedItem();
+        String clientId = selectedItem.replace("模块：", "");
+        
+        tcpServerService.sendMessageToClient(clientId, message);
+        appendLog("发送到模块 [" + clientId + "]：" + message);
+//        etMessage.setText("");
     }
 
     private void appendLog(String message) {
@@ -295,13 +363,14 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         appendLog("App 进入后台");
+        // 不在后台解绑服务，保持 TCP 连接
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         appendLog("App 回到前台");
-        if (isBound) {
+        if (isBound && tcpServerService != null) {
             updateUIFromService();
         }
     }
@@ -309,8 +378,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        unbindService(serviceConnection);
-        isBound = false;
+        if (isBound) {
+            unbindService(serviceConnection);
+            isBound = false;
+        }
         appendLog("Activity 销毁");
     }
 }

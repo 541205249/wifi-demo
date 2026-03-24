@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">wifidemo</string>
+    <string name="send_to_custom_tips">选择要发送的客户端</string>
 </resources>
