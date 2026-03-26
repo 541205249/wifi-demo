@@ -1,4 +1,4 @@
-package com.example.wifidemo.greendao;
+package com.wifi.lib.db;
 
 public class TrackedDeviceEntity {
     private Long id;

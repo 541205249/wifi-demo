@@ -1,12 +1,12 @@
-package com.example.wifidemo.greendao;
+package com.wifi.lib.db;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
-import android.util.Log;
 
 import org.greenrobot.greendao.AbstractDaoMaster;
 import org.greenrobot.greendao.database.Database;
 import org.greenrobot.greendao.database.DatabaseOpenHelper;
+import org.greenrobot.greendao.database.StandardDatabase;
 import org.greenrobot.greendao.identityscope.IdentityScopeType;
 
 public class DaoMaster extends AbstractDaoMaster {
@@ -20,6 +20,10 @@ public class DaoMaster extends AbstractDaoMaster {
     public static void dropAllTables(Database db, boolean ifExists) {
         TrackedDeviceEntityDao.dropTable(db, ifExists);
         DeviceLogEntityDao.dropTable(db, ifExists);
+    }
+
+    public DaoMaster(SQLiteDatabase db) {
+        this(new StandardDatabase(db));
     }
 
     public DaoMaster(Database db) {
@@ -48,25 +52,6 @@ public class DaoMaster extends AbstractDaoMaster {
         @Override
         public void onCreate(Database db) {
             createAllTables(db, false);
-        }
-    }
-
-    public static class DevOpenHelper extends OpenHelper {
-        private static final String TAG = "DaoMaster";
-
-        public DevOpenHelper(Context context, String name) {
-            super(context, name);
-        }
-
-        public DevOpenHelper(Context context, String name, SQLiteDatabase.CursorFactory factory) {
-            super(context, name, factory);
-        }
-
-        @Override
-        public void onUpgrade(Database db, int oldVersion, int newVersion) {
-            Log.i(TAG, "Upgrading schema from version " + oldVersion + " to " + newVersion + " by dropping all tables");
-            dropAllTables(db, true);
-            onCreate(db);
         }
     }
 }

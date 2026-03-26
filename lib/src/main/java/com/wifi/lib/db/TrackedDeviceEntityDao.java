@@ -1,4 +1,4 @@
-package com.example.wifidemo.greendao;
+package com.wifi.lib.db;
 
 import android.database.Cursor;
 import android.database.sqlite.SQLiteStatement;

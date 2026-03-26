@@ -33,10 +33,10 @@ public class DeviceManager {
 
     public static final class DeviceConnection {
         private final String deviceId;
-        private final String macAddress;
         private final String remoteIp;
         private final int remotePort;
         private final long connectedAt;
+        private volatile String macAddress;
 
         public DeviceConnection(
                 String deviceId,
@@ -58,6 +58,23 @@ public class DeviceManager {
 
         public String getMacAddress() {
             return macAddress;
+        }
+
+        public boolean hasResolvedMac() {
+            return !TextUtils.isEmpty(macAddress);
+        }
+
+        public String getArchiveDeviceId() {
+            return hasResolvedMac() ? macAddress : null;
+        }
+
+        public boolean updateMacAddress(String macAddress) {
+            String normalizedMac = DeviceHistoryStore.normalizeMacAddress(macAddress);
+            if (TextUtils.equals(this.macAddress, normalizedMac)) {
+                return false;
+            }
+            this.macAddress = normalizedMac;
+            return !TextUtils.isEmpty(this.macAddress);
         }
 
         public String getRemoteIp() {

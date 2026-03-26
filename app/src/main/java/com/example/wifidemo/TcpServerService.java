@@ -12,6 +12,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.PowerManager;
+import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.Nullable;
@@ -19,15 +20,18 @@ import androidx.core.app.NotificationCompat;
 
 import com.example.wifidemo.device.DeviceHistoryStore;
 import com.example.wifidemo.device.DeviceManager;
-import com.example.wifidemo.device.NetworkIdentityResolver;
+import com.example.wifidemo.device.Hc25MacDiscoveryClient;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -35,8 +39,11 @@ public class TcpServerService extends Service {
     private static final String TAG = "TcpServerService";
     private static final int NOTIFICATION_ID = 1001;
     private static final String CHANNEL_ID = "tcp_server_channel";
+    private static final int MAX_MAC_DISCOVERY_ROUNDS = 3;
 
     private final IBinder binder = new TcpServerBinder();
+    private final Map<String, PendingArchiveState> pendingArchiveStates = new ConcurrentHashMap<>();
+    private final Hc25MacDiscoveryClient macDiscoveryClient = new Hc25MacDiscoveryClient();
 
     private ServerSocket serverSocket;
     private ExecutorService executorService;
@@ -57,6 +64,8 @@ public class TcpServerService extends Service {
 
         void onClientConnected(String clientId);
 
+        void onClientIdentityResolved(String clientId, String macAddress);
+
         void onClientDisconnected(String clientId);
 
         void onError(String error);
@@ -67,6 +76,79 @@ public class TcpServerService extends Service {
     public class TcpServerBinder extends Binder {
         public TcpServerService getService() {
             return TcpServerService.this;
+        }
+    }
+
+    private static final class PendingLogRecord {
+        private final long timestamp;
+        private final String category;
+        private final String action;
+        private final String message;
+        private final String remoteIp;
+        private final int remotePort;
+        private final String localIp;
+        private final int localPort;
+
+        private PendingLogRecord(
+                long timestamp,
+                String category,
+                String action,
+                String message,
+                String remoteIp,
+                int remotePort,
+                String localIp,
+                int localPort
+        ) {
+            this.timestamp = timestamp;
+            this.category = category;
+            this.action = action;
+            this.message = message;
+            this.remoteIp = remoteIp;
+            this.remotePort = remotePort;
+            this.localIp = localIp;
+            this.localPort = localPort;
+        }
+    }
+
+    private static final class PendingArchiveState {
+        private final List<PendingLogRecord> pendingLogs = new ArrayList<>();
+        private boolean discoveryInProgress;
+        private boolean disconnected;
+        private int discoveryRounds;
+
+        synchronized boolean tryStartDiscovery(int maxRounds) {
+            if (discoveryInProgress || discoveryRounds >= maxRounds) {
+                return false;
+            }
+            discoveryInProgress = true;
+            discoveryRounds++;
+            return true;
+        }
+
+        synchronized void finishDiscovery() {
+            discoveryInProgress = false;
+        }
+
+        synchronized boolean isDiscoveryInProgress() {
+            return discoveryInProgress;
+        }
+
+        synchronized void addLog(PendingLogRecord logRecord) {
+            pendingLogs.add(logRecord);
+        }
+
+        synchronized List<PendingLogRecord> consumeLogs() {
+            List<PendingLogRecord> copiedLogs = new ArrayList<>(pendingLogs);
+            pendingLogs.clear();
+            return copiedLogs;
+        }
+
+        synchronized void markDisconnected() {
+            disconnected = true;
+        }
+
+        synchronized boolean isDisconnected() {
+            return disconnected;
         }
     }
 
@@ -190,6 +272,7 @@ public class TcpServerService extends Service {
         if (deviceManager != null) {
             deviceManager.closeAllDevices();
         }
+        pendingArchiveStates.clear();
 
         if (executorService != null) {
             executorService.shutdownNow();
@@ -245,16 +328,13 @@ public class TcpServerService extends Service {
                             continue;
                         }
 
-                        String macAddress = NetworkIdentityResolver.resolveMacAddress(remoteIp);
-                        String deviceId = DeviceHistoryStore.createDeviceId(macAddress, remoteIp);
                         DeviceManager.DeviceConnection deviceConnection = new DeviceManager.DeviceConnection(
-                                deviceId,
-                                macAddress,
+                                remoteIp,
+                                null,
                                 remoteIp,
                                 clientSocket.getPort(),
                                 System.currentTimeMillis()
                         );
-
                         deviceManager.addDevice(clientSocket, deviceConnection);
                     } catch (IOException e) {
                         if (isRunning) {
@@ -350,15 +430,40 @@ public class TcpServerService extends Service {
             return;
         }
 
-        deviceHistoryStore.recordConnection(
-                device.getDeviceId(),
-                device.getMacAddress(),
+        long timestamp = System.currentTimeMillis();
+        String localIp = resolveLocalIpAddress();
+        String archiveDeviceId = device.getArchiveDeviceId();
+        if (!TextUtils.isEmpty(archiveDeviceId)) {
+            deviceHistoryStore.recordConnectionAt(
+                    archiveDeviceId,
+                    archiveDeviceId,
+                    device.getRemoteIp(),
+                    device.getRemotePort(),
+                    localIp,
+                    ServerConstance.SERVER_PORT,
+                    connected,
+                    timestamp
+            );
+            return;
+        }
+        if (!isRunning) {
+            return;
+        }
+
+        bufferPendingLog(device, new PendingLogRecord(
+                timestamp,
+                DeviceHistoryStore.CATEGORY_CONNECTION,
+                connected ? DeviceHistoryStore.ACTION_CONNECTED : DeviceHistoryStore.ACTION_DISCONNECTED,
+                null,
                 device.getRemoteIp(),
                 device.getRemotePort(),
-                resolveLocalIpAddress(),
-                ServerConstance.SERVER_PORT,
-                connected
-        );
+                localIp,
+                ServerConstance.SERVER_PORT
+        ));
+        if (!connected) {
+            markSessionDisconnected(device.getDeviceId());
+        }
+        requestMacResolution(device);
     }
 
     private void recordCommunication(DeviceManager.DeviceConnection device, String action, String message) {
@@ -366,15 +471,151 @@ public class TcpServerService extends Service {
             return;
         }
 
-        deviceHistoryStore.recordCommunication(
-                device.getDeviceId(),
-                device.getMacAddress(),
+        long timestamp = System.currentTimeMillis();
+        String localIp = resolveLocalIpAddress();
+        String archiveDeviceId = device.getArchiveDeviceId();
+        if (!TextUtils.isEmpty(archiveDeviceId)) {
+            deviceHistoryStore.recordCommunicationAt(
+                    archiveDeviceId,
+                    archiveDeviceId,
+                    device.getRemoteIp(),
+                    device.getRemotePort(),
+                    localIp,
+                    ServerConstance.SERVER_PORT,
+                    action,
+                    message,
+                    timestamp
+            );
+            return;
+        }
+        if (!isRunning) {
+            return;
+        }
+
+        bufferPendingLog(device, new PendingLogRecord(
+                timestamp,
+                DeviceHistoryStore.CATEGORY_COMMUNICATION,
+                action,
+                message,
                 device.getRemoteIp(),
                 device.getRemotePort(),
-                resolveLocalIpAddress(),
-                ServerConstance.SERVER_PORT,
-                action,
-                message
+                localIp,
+                ServerConstance.SERVER_PORT
+        ));
+        requestMacResolution(device);
+    }
+
+    private void bufferPendingLog(DeviceManager.DeviceConnection device, PendingLogRecord logRecord) {
+        PendingArchiveState state = pendingArchiveStates.computeIfAbsent(
+                device.getDeviceId(),
+                key -> new PendingArchiveState()
+        );
+        state.addLog(logRecord);
+    }
+
+    private void markSessionDisconnected(String sessionId) {
+        PendingArchiveState state = pendingArchiveStates.get(sessionId);
+        if (state != null) {
+            state.markDisconnected();
+        }
+    }
+
+    private void requestMacResolution(DeviceManager.DeviceConnection device) {
+        if (device == null || device.hasResolvedMac() || executorService == null) {
+            return;
+        }
+
+        PendingArchiveState state = pendingArchiveStates.computeIfAbsent(
+                device.getDeviceId(),
+                key -> new PendingArchiveState()
+        );
+        if (!state.tryStartDiscovery(MAX_MAC_DISCOVERY_ROUNDS)) {
+            if (state.isDisconnected() && !state.isDiscoveryInProgress()) {
+                pendingArchiveStates.remove(device.getDeviceId(), state);
+            }
+            return;
+        }
+
+        try {
+            executorService.execute(() -> {
+                String macAddress = macDiscoveryClient.queryMacAddress(device.getRemoteIp());
+                if (!TextUtils.isEmpty(macAddress)) {
+                    handleResolvedMac(device, macAddress);
+                    return;
+                }
+                handleMacResolutionFailed(device.getDeviceId());
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to schedule MAC discovery for " + device.getDeviceId(), e);
+            handleMacResolutionFailed(device.getDeviceId());
+        }
+    }
+
+    private void handleResolvedMac(DeviceManager.DeviceConnection device, String macAddress) {
+        String normalizedMac = DeviceHistoryStore.normalizeMacAddress(macAddress);
+        if (TextUtils.isEmpty(normalizedMac)) {
+            handleMacResolutionFailed(device.getDeviceId());
+            return;
+        }
+
+        Log.i(TAG, "Resolved device MAC [" + normalizedMac + "] for session [" + device.getDeviceId() + "]");
+        device.updateMacAddress(normalizedMac);
+
+        PendingArchiveState state = pendingArchiveStates.remove(device.getDeviceId());
+        if (state != null) {
+            state.finishDiscovery();
+            for (PendingLogRecord logRecord : state.consumeLogs()) {
+                persistPendingLog(normalizedMac, logRecord);
+            }
+        }
+
+        if (messageListener != null) {
+            mainHandler.post(() -> messageListener.onClientIdentityResolved(device.getDeviceId(), normalizedMac));
+        }
+    }
+
+    private void handleMacResolutionFailed(String sessionId) {
+        PendingArchiveState state = pendingArchiveStates.get(sessionId);
+        if (state == null) {
+            return;
+        }
+
+        state.finishDiscovery();
+        if (state.isDisconnected()) {
+            Log.w(TAG, "MAC resolution failed for disconnected session: " + sessionId);
+            pendingArchiveStates.remove(sessionId, state);
+        }
+    }
+
+    private void persistPendingLog(String archiveDeviceId, PendingLogRecord logRecord) {
+        if (deviceHistoryStore == null || logRecord == null || TextUtils.isEmpty(archiveDeviceId)) {
+            return;
+        }
+
+        if (DeviceHistoryStore.CATEGORY_CONNECTION.equals(logRecord.category)) {
+            deviceHistoryStore.recordConnectionAt(
+                    archiveDeviceId,
+                    archiveDeviceId,
+                    logRecord.remoteIp,
+                    logRecord.remotePort,
+                    logRecord.localIp,
+                    logRecord.localPort,
+                    DeviceHistoryStore.ACTION_CONNECTED.equals(logRecord.action),
+                    logRecord.timestamp
+            );
+            return;
+        }
+
+        deviceHistoryStore.recordCommunicationAt(
+                archiveDeviceId,
+                archiveDeviceId,
+                logRecord.remoteIp,
+                logRecord.remotePort,
+                logRecord.localIp,
+                logRecord.localPort,
+                logRecord.action,
+                logRecord.message,
+                logRecord.timestamp
         );
     }
 

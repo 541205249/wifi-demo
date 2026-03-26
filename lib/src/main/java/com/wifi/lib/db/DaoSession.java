@@ -1,4 +1,4 @@
-package com.example.wifidemo.greendao;
+package com.wifi.lib.db;
 
 import org.greenrobot.greendao.AbstractDao;
 import org.greenrobot.greendao.AbstractDaoSession;

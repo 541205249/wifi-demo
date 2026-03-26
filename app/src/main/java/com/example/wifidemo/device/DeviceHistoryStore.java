@@ -3,11 +3,13 @@ package com.example.wifidemo.device;
 import android.content.Context;
 import android.text.TextUtils;
 
-import com.example.wifidemo.greendao.DeviceLogEntity;
-import com.example.wifidemo.greendao.DeviceLogEntityDao;
-import com.example.wifidemo.greendao.GreenDaoManager;
-import com.example.wifidemo.greendao.TrackedDeviceEntity;
-import com.example.wifidemo.greendao.TrackedDeviceEntityDao;
+import com.wifi.lib.db.DaoSession;
+import com.wifi.lib.db.DeviceLogEntity;
+import com.wifi.lib.db.DeviceLogEntityDao;
+import com.wifi.lib.db.TrackedDeviceEntity;
+import com.wifi.lib.db.TrackedDeviceEntityDao;
+import com.wifi.lib.db.WifiDeviceDbInitiator;
+import com.wifi.lib.db.WifiDeviceDbSessionProvider;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -203,9 +205,14 @@ public class DeviceHistoryStore {
     }
 
     private DeviceHistoryStore(Context context) {
-        GreenDaoManager greenDaoManager = GreenDaoManager.getInstance(context.getApplicationContext());
-        trackedDeviceDao = greenDaoManager.getTrackedDeviceDao();
-        deviceLogDao = greenDaoManager.getDeviceLogDao();
+        WifiDeviceDbInitiator dbInitiator = new WifiDeviceDbInitiator();
+        dbInitiator.setup(context.getApplicationContext());
+        DaoSession daoSession = WifiDeviceDbSessionProvider.getInstance().getDaoSession();
+        if (daoSession == null) {
+            throw new IllegalStateException("DaoSession is not initialized");
+        }
+        trackedDeviceDao = daoSession.getTrackedDeviceEntityDao();
+        deviceLogDao = daoSession.getDeviceLogEntityDao();
     }
 
     public static DeviceHistoryStore getInstance(Context context) {
@@ -222,6 +229,21 @@ public class DeviceHistoryStore {
     public static String normalizeMacAddress(String macAddress) {
         if (TextUtils.isEmpty(macAddress)) {
             return null;
+        }
+
+        String compact = macAddress.trim()
+                .replace(":", "")
+                .replace("-", "")
+                .replaceAll("\\s+", "");
+        if (compact.matches("[0-9A-Fa-f]{12}") && !"000000000000".equalsIgnoreCase(compact)) {
+            StringBuilder builder = new StringBuilder();
+            for (int index = 0; index < compact.length(); index += 2) {
+                if (builder.length() > 0) {
+                    builder.append(':');
+                }
+                builder.append(compact, index, index + 2);
+            }
+            return builder.toString().toUpperCase(Locale.US);
         }
 
         String normalized = macAddress.trim()
@@ -261,7 +283,28 @@ public class DeviceHistoryStore {
             int localPort,
             boolean connected
     ) {
-        long timestamp = System.currentTimeMillis();
+        recordConnectionAt(
+                deviceId,
+                macAddress,
+                remoteIp,
+                remotePort,
+                localIp,
+                localPort,
+                connected,
+                System.currentTimeMillis()
+        );
+    }
+
+    public synchronized void recordConnectionAt(
+            String deviceId,
+            String macAddress,
+            String remoteIp,
+            int remotePort,
+            String localIp,
+            int localPort,
+            boolean connected,
+            long timestamp
+    ) {
         TrackedDeviceEntity device = getOrCreateDevice(deviceId, macAddress);
         updateDeviceSummary(device, macAddress, remoteIp, remotePort, localIp, localPort, timestamp);
         device.setCurrentlyConnected(connected);
@@ -294,7 +337,30 @@ public class DeviceHistoryStore {
             String action,
             String message
     ) {
-        long timestamp = System.currentTimeMillis();
+        recordCommunicationAt(
+                deviceId,
+                macAddress,
+                remoteIp,
+                remotePort,
+                localIp,
+                localPort,
+                action,
+                message,
+                System.currentTimeMillis()
+        );
+    }
+
+    public synchronized void recordCommunicationAt(
+            String deviceId,
+            String macAddress,
+            String remoteIp,
+            int remotePort,
+            String localIp,
+            int localPort,
+            String action,
+            String message,
+            long timestamp
+    ) {
         TrackedDeviceEntity device = getOrCreateDevice(deviceId, macAddress);
         updateDeviceSummary(device, macAddress, remoteIp, remotePort, localIp, localPort, timestamp);
         device.setCommunicationCount(device.getCommunicationCount() + 1);

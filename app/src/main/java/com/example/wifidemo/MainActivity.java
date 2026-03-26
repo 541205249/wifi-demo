@@ -226,6 +226,15 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
+            public void onClientIdentityResolved(String clientId, String macAddress) {
+                mainHandler.post(() -> {
+                    appendLog("模块身份已识别：" + macAddress + " [" + clientId + "]");
+                    updateClientList();
+                    updateHistoryDeviceList();
+                });
+            }
+
+            @Override
             public void onClientDisconnected(String clientId) {
                 mainHandler.post(() -> {
                     String label = formatDeviceLabel(clientId);

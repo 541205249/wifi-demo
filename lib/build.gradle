@@ -23,8 +23,10 @@ dependencies {
 
     implementation libs.appcompat
     api libs.rxjava
+    api libs.greendao
 
     implementation libs.jackson
     implementation libs.okhttp
     implementation libs.gson
+    implementation libs.greendaoUpgradeHelper
 }
