@@ -1,0 +1,347 @@
+package com.wifi.optometry.ui;
+
+import android.Manifest;
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.IBinder;
+import android.os.PowerManager;
+import android.provider.Settings;
+import android.text.TextUtils;
+
+import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.view.GravityCompat;
+import androidx.lifecycle.ViewModelProvider;
+
+import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.navigation.NavigationView;
+import com.wifi.optometry.R;
+import com.wifi.optometry.communication.ServerConstance;
+import com.wifi.optometry.communication.TcpServerService;
+import com.wifi.optometry.communication.device.DeviceManager;
+import com.wifi.optometry.domain.model.ConnectedDeviceInfo;
+import com.wifi.optometry.ui.main.DeviceFragment;
+import com.wifi.optometry.ui.main.PatientFragment;
+import com.wifi.optometry.ui.main.ProgramFragment;
+import com.wifi.optometry.ui.main.ReportFragment;
+import com.wifi.optometry.ui.main.SettingsFragment;
+import com.wifi.optometry.ui.main.WorkbenchFragment;
+import com.wifi.optometry.ui.state.ClinicViewModel;
+import com.wifi.optometry.ui.state.DeviceServiceGateway;
+
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
+
+public class MainActivity extends AppCompatActivity implements DeviceServiceGateway {
+    private static final int NOTIFICATION_PERMISSION_REQUEST_CODE = 1101;
+
+    private androidx.drawerlayout.widget.DrawerLayout drawerLayout;
+    private MaterialToolbar toolbar;
+    private NavigationView navigationView;
+
+    private ClinicViewModel clinicViewModel;
+    private TcpServerService tcpServerService;
+    private boolean isServiceBound;
+    private String localIpAddress;
+
+    private final ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            TcpServerService.TcpServerBinder binder = (TcpServerService.TcpServerBinder) service;
+            tcpServerService = binder.getService();
+            isServiceBound = true;
+            if (!TextUtils.isEmpty(localIpAddress)) {
+                tcpServerService.setLocalIpAddress(localIpAddress);
+            }
+            bindServiceCallbacks();
+            clinicViewModel.setDeviceServiceGateway(MainActivity.this);
+            clinicViewModel.appendDeviceConsole("WiFi 通信服务已连接");
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            isServiceBound = false;
+            tcpServerService = null;
+            clinicViewModel.refreshDeviceState();
+            clinicViewModel.appendDeviceConsole("WiFi 通信服务已断开");
+        }
+    };
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
+        setContentView(R.layout.activity_main);
+
+        clinicViewModel = new ViewModelProvider(this).get(ClinicViewModel.class);
+        initViews();
+        setupNavigation();
+
+        checkNotificationPermission();
+        requestBatteryOptimizationWhitelist();
+        localIpAddress = resolveLocalIpAddress();
+
+        clinicViewModel.setDeviceServiceGateway(this);
+        if (savedInstanceState == null) {
+            openDestination(R.id.menu_workbench);
+            navigationView.setCheckedItem(R.id.menu_workbench);
+        }
+
+        startAndBindService();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (isServiceBound) {
+            unbindService(serviceConnection);
+            isServiceBound = false;
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == NOTIFICATION_PERMISSION_REQUEST_CODE && grantResults.length > 0
+                && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            clinicViewModel.appendDeviceConsole("通知权限已开启");
+        }
+    }
+
+    public void openDeviceHistory(String deviceId) {
+        Intent intent = new Intent(this, com.wifi.optometry.ui.device.DeviceHistoryActivity.class);
+        intent.putExtra(com.wifi.optometry.ui.device.DeviceHistoryActivity.EXTRA_DEVICE_ID, deviceId);
+        startActivity(intent);
+    }
+
+    private void initViews() {
+        drawerLayout = findViewById(R.id.drawerLayout);
+        toolbar = findViewById(R.id.topAppBar);
+        navigationView = findViewById(R.id.navigationView);
+
+        setSupportActionBar(toolbar);
+        toolbar.setNavigationOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
+    }
+
+    private void setupNavigation() {
+        navigationView.setNavigationItemSelectedListener(item -> {
+            drawerLayout.closeDrawer(GravityCompat.START);
+            return openDestination(item.getItemId());
+        });
+    }
+
+    private boolean openDestination(int itemId) {
+        androidx.fragment.app.Fragment fragment;
+        int titleResId;
+        if (itemId == R.id.menu_patient) {
+            fragment = new PatientFragment();
+            titleResId = R.string.nav_patient;
+        } else if (itemId == R.id.menu_program) {
+            fragment = new ProgramFragment();
+            titleResId = R.string.nav_program;
+        } else if (itemId == R.id.menu_report) {
+            fragment = new ReportFragment();
+            titleResId = R.string.nav_report;
+        } else if (itemId == R.id.menu_device) {
+            fragment = new DeviceFragment();
+            titleResId = R.string.nav_device;
+        } else if (itemId == R.id.menu_settings) {
+            fragment = new SettingsFragment();
+            titleResId = R.string.nav_settings;
+        } else {
+            fragment = new WorkbenchFragment();
+            titleResId = R.string.nav_workbench;
+        }
+
+        toolbar.setTitle(titleResId);
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragmentContainer, fragment)
+                .commit();
+        return true;
+    }
+
+    private void startAndBindService() {
+        Intent serviceIntent = new Intent(this, TcpServerService.class);
+        startForegroundService(serviceIntent);
+        bindService(serviceIntent, serviceConnection, BIND_AUTO_CREATE);
+    }
+
+    private void bindServiceCallbacks() {
+        if (tcpServerService == null) {
+            return;
+        }
+        tcpServerService.setOnMessageListener(new TcpServerService.OnMessageListener() {
+            @Override
+            public void onMessageReceived(String clientId, String message) {
+                clinicViewModel.appendDeviceConsole("收到 " + clientId + " 的消息: " + message);
+                clinicViewModel.refreshDeviceState();
+            }
+
+            @Override
+            public void onClientConnected(String clientId) {
+                clinicViewModel.appendDeviceConsole("模块已连接: " + clientId);
+                clinicViewModel.refreshDeviceState();
+            }
+
+            @Override
+            public void onClientIdentityResolved(String clientId, String macAddress) {
+                clinicViewModel.appendDeviceConsole("已识别模块身份: " + macAddress + " [" + clientId + "]");
+                clinicViewModel.refreshDeviceState();
+            }
+
+            @Override
+            public void onClientDisconnected(String clientId) {
+                clinicViewModel.appendDeviceConsole("模块已断开: " + clientId);
+                clinicViewModel.refreshDeviceState();
+            }
+
+            @Override
+            public void onError(String error) {
+                clinicViewModel.appendDeviceConsole("通信错误: " + error);
+                clinicViewModel.refreshDeviceState();
+            }
+
+            @Override
+            public void onServerStarted(String ipAddress) {
+                if (!TextUtils.isEmpty(ipAddress)) {
+                    localIpAddress = ipAddress;
+                }
+                clinicViewModel.appendDeviceConsole("监听服务运行中，地址: "
+                        + (TextUtils.isEmpty(getLocalIpAddress()) ? "未获取" : getLocalIpAddress())
+                        + ":" + ServerConstance.SERVER_PORT);
+                clinicViewModel.refreshDeviceState();
+            }
+        });
+    }
+
+    private void checkNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                    NOTIFICATION_PERMISSION_REQUEST_CODE
+            );
+        }
+    }
+
+    private void requestBatteryOptimizationWhitelist() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return;
+        }
+
+        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+        String packageName = getPackageName();
+        if (powerManager == null || powerManager.isIgnoringBatteryOptimizations(packageName)) {
+            return;
+        }
+        try {
+            Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+            intent.setData(Uri.parse("package:" + packageName));
+            startActivity(intent);
+        } catch (Exception ignored) {
+        }
+    }
+
+    private String resolveLocalIpAddress() {
+        try {
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            while (interfaces.hasMoreElements()) {
+                NetworkInterface networkInterface = interfaces.nextElement();
+                Enumeration<InetAddress> addresses = networkInterface.getInetAddresses();
+                while (addresses.hasMoreElements()) {
+                    InetAddress address = addresses.nextElement();
+                    if (!address.isLoopbackAddress() && address instanceof java.net.Inet4Address) {
+                        return address.getHostAddress();
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    @Override
+    public boolean isServerRunning() {
+        return tcpServerService != null && tcpServerService.isServerRunning();
+    }
+
+    @Override
+    public String getLocalIpAddress() {
+        if (tcpServerService != null && !TextUtils.isEmpty(tcpServerService.getLocalIpAddress())) {
+            return tcpServerService.getLocalIpAddress();
+        }
+        if (TextUtils.isEmpty(localIpAddress)) {
+            localIpAddress = resolveLocalIpAddress();
+        }
+        return localIpAddress;
+    }
+
+    @Override
+    public int getServerPort() {
+        return ServerConstance.SERVER_PORT;
+    }
+
+    @Override
+    public List<ConnectedDeviceInfo> getConnectedDevices() {
+        List<ConnectedDeviceInfo> result = new ArrayList<>();
+        if (tcpServerService == null) {
+            return result;
+        }
+        DeviceManager.DeviceConnection[] connections = tcpServerService.getConnectedDevices();
+        for (DeviceManager.DeviceConnection connection : connections) {
+            result.add(new ConnectedDeviceInfo(
+                    connection.getDeviceId(),
+                    connection.getSelectionLabel(),
+                    connection.getMacAddress(),
+                    connection.getRemoteIp(),
+                    connection.getRemotePort(),
+                    connection.getConnectedAt()
+            ));
+        }
+        return result;
+    }
+
+    @Override
+    public void startServer() {
+        Intent serviceIntent = new Intent(this, TcpServerService.class);
+        startForegroundService(serviceIntent);
+        if (!isServiceBound) {
+            bindService(serviceIntent, serviceConnection, BIND_AUTO_CREATE);
+        }
+    }
+
+    @Override
+    public void stopServer() {
+        if (tcpServerService != null) {
+            tcpServerService.stopServer();
+        }
+    }
+
+    @Override
+    public void broadcastMessage(String message) {
+        if (tcpServerService != null) {
+            tcpServerService.broadcastMessage(message);
+        }
+    }
+
+    @Override
+    public void sendMessageToClient(String clientId, String message) {
+        if (tcpServerService != null) {
+            tcpServerService.sendMessageToClient(clientId, message);
+        }
+    }
+}

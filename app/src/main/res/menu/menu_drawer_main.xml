@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/menu_workbench"
+            android:icon="@android:drawable/ic_menu_view"
+            android:title="@string/nav_workbench" />
+        <item
+            android:id="@+id/menu_patient"
+            android:icon="@android:drawable/ic_menu_myplaces"
+            android:title="@string/nav_patient" />
+        <item
+            android:id="@+id/menu_program"
+            android:icon="@android:drawable/ic_menu_agenda"
+            android:title="@string/nav_program" />
+        <item
+            android:id="@+id/menu_report"
+            android:icon="@android:drawable/ic_menu_edit"
+            android:title="@string/nav_report" />
+        <item
+            android:id="@+id/menu_device"
+            android:icon="@android:drawable/ic_menu_manage"
+            android:title="@string/nav_device" />
+        <item
+            android:id="@+id/menu_settings"
+            android:icon="@android:drawable/ic_menu_preferences"
+            android:title="@string/nav_settings" />
+    </group>
+</menu>
