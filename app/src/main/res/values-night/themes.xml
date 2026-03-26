@@ -1,7 +1,28 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.Wifidemo" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+<resources>
+    <style name="Base.Theme.Optometry" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/brand_primary</item>
+        <item name="colorOnPrimary">@color/brand_on_primary</item>
+        <item name="colorSecondary">@color/brand_secondary</item>
+        <item name="colorOnSecondary">@color/brand_on_secondary</item>
+        <item name="colorTertiary">@color/brand_tertiary</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@color/brand_text_primary</item>
+        <item name="materialCardViewStyle">@style/Widget.Optometry.Card</item>
+        <item name="chipStyle">@style/Widget.Optometry.Chip</item>
+        <item name="materialButtonStyle">@style/Widget.Optometry.Button</item>
+    </style>
+
+    <style name="Theme.Optometry" parent="Base.Theme.Optometry" />
+
+    <style name="Widget.Optometry.Card" parent="Widget.Material3.CardView.Elevated">
+        <item name="strokeWidth">1dp</item>
+    </style>
+
+    <style name="Widget.Optometry.Chip" parent="Widget.Material3.Chip.Assist">
+        <item name="chipCornerRadius">12dp</item>
+    </style>
+
+    <style name="Widget.Optometry.Button" parent="Widget.Material3.Button">
+        <item name="cornerRadius">14dp</item>
     </style>
 </resources>

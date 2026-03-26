@@ -1,5 +1,11 @@
 <resources>
-    <string name="app_name">wifidemo</string>
-    <string name="send_to_custom_tips">选择要发送的客户端</string>
-    <string name="history_device_tips">选择要查看记录的设备</string>
+    <string name="app_name">验光工作台</string>
+    <string name="drawer_open">打开导航</string>
+    <string name="drawer_close">关闭导航</string>
+    <string name="nav_workbench">验光台</string>
+    <string name="nav_patient">被测者</string>
+    <string name="nav_report">报告</string>
+    <string name="nav_program">程序</string>
+    <string name="nav_device">设备</string>
+    <string name="nav_settings">设置</string>
 </resources>

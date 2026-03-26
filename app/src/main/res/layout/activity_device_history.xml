@@ -1,67 +1,95 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:orientation="vertical">
 
-    <LinearLayout
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/topAppBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:background="?attr/colorSurface"
+        app:navigationIcon="@android:drawable/ic_menu_revert" />
 
-        <TextView
-            android:id="@+id/tvDeviceTitle"
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="20sp"
-            android:textStyle="bold" />
+            android:orientation="vertical"
+            android:padding="16dp">
 
-        <TextView
-            android:id="@+id/tvDeviceSummary"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:textColor="#444444"
-            android:textSize="14sp" />
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
-        <RadioGroup
-            android:id="@+id/rgFilter"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:orientation="horizontal">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-            <RadioButton
-                android:id="@+id/rbAllLogs"
-                android:layout_width="wrap_content"
+                    <TextView
+                        android:id="@+id/tvDeviceTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/brand_text_primary"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvDeviceSummary"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:textColor="@color/brand_text_secondary"
+                        android:textSize="14sp" />
+
+                    <RadioGroup
+                        android:id="@+id/rgFilter"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:orientation="horizontal">
+
+                        <RadioButton
+                            android:id="@+id/rbAllLogs"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            android:text="全部记录" />
+
+                        <RadioButton
+                            android:id="@+id/rbCommunicationOnly"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="通信记录" />
+
+                        <RadioButton
+                            android:id="@+id/rbConnectionOnly"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="连接记录" />
+                    </RadioGroup>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <TextView
+                android:id="@+id/tvLogs"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:checked="true"
-                android:text="全部记录" />
-
-            <RadioButton
-                android:id="@+id/rbCommunicationOnly"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="通信记录" />
-
-            <RadioButton
-                android:id="@+id/rbConnectionOnly"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="连接记录" />
-        </RadioGroup>
-
-        <TextView
-            android:id="@+id/tvLogs"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:background="#f0f0f0"
-            android:fontFamily="monospace"
-            android:padding="12dp"
-            android:text="暂无记录"
-            android:textIsSelectable="true"
-            android:textSize="13sp" />
-    </LinearLayout>
-</ScrollView>
+                android:layout_marginTop="16dp"
+                android:background="@color/brand_surface_variant"
+                android:fontFamily="monospace"
+                android:padding="12dp"
+                android:text="暂无记录"
+                android:textColor="@color/brand_text_primary"
+                android:textIsSelectable="true"
+                android:textSize="13sp" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

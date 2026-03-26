@@ -22,4 +22,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "wifidemo"
 include ':app'
+include ':demo'
 include ':lib'
