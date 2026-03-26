@@ -29,6 +29,11 @@
             android:foregroundServiceType="dataSync" />
 
         <activity
+            android:name=".DeviceHistoryActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
+
+        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>

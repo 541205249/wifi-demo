@@ -8,6 +8,7 @@ rxjava = "2.2.10"
 jackson = "2.10.1"
 okhttp = "4.12.0"
 gson = "2.13.1"
+greendao = "3.3.0"
 
 [libraries]
 appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
@@ -18,6 +19,7 @@ rxjava = { group = "io.reactivex.rxjava2", name = "rxjava", version.ref = "rxjav
 jackson = { group = "com.fasterxml.jackson.core", name = "jackson-databind", version.ref = "jackson" }
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+greendao = { group = "org.greenrobot", name = "greendao", version.ref = "greendao" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

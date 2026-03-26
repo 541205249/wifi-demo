@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">wifidemo</string>
     <string name="send_to_custom_tips">选择要发送的客户端</string>
+    <string name="history_device_tips">选择要查看记录的设备</string>
 </resources>
