@@ -1,20 +1,58 @@
 package com.wifi.lib.db;
 
+import androidx.annotation.NonNull;
+import androidx.room.ColumnInfo;
+import androidx.room.Entity;
+import androidx.room.Ignore;
+import androidx.room.Index;
+import androidx.room.PrimaryKey;
+
+@Entity(
+        tableName = "DEVICE_LOG_ENTITY",
+        indices = {
+                @Index(value = {"DEVICE_ID"}),
+                @Index(value = {"TIMESTAMP"})
+        }
+)
 public class DeviceLogEntity {
+    @PrimaryKey(autoGenerate = true)
+    @ColumnInfo(name = "_id")
     private Long id;
-    private String deviceId;
-    private String category;
-    private String action;
+
+    @NonNull
+    @ColumnInfo(name = "DEVICE_ID")
+    private String deviceId = "";
+
+    @NonNull
+    @ColumnInfo(name = "CATEGORY")
+    private String category = "";
+
+    @NonNull
+    @ColumnInfo(name = "ACTION")
+    private String action = "";
+
+    @ColumnInfo(name = "MESSAGE")
     private String message;
+
+    @ColumnInfo(name = "REMOTE_IP")
     private String remoteIp;
+
+    @ColumnInfo(name = "REMOTE_PORT")
     private Integer remotePort;
+
+    @ColumnInfo(name = "LOCAL_IP")
     private String localIp;
+
+    @ColumnInfo(name = "LOCAL_PORT")
     private Integer localPort;
+
+    @ColumnInfo(name = "TIMESTAMP")
     private long timestamp;
 
     public DeviceLogEntity() {
     }
 
+    @Ignore
     public DeviceLogEntity(
             Long id,
             String deviceId,
@@ -28,9 +66,9 @@ public class DeviceLogEntity {
             long timestamp
     ) {
         this.id = id;
-        this.deviceId = deviceId;
-        this.category = category;
-        this.action = action;
+        this.deviceId = deviceId == null ? "" : deviceId;
+        this.category = category == null ? "" : category;
+        this.action = action == null ? "" : action;
         this.message = message;
         this.remoteIp = remoteIp;
         this.remotePort = remotePort;
@@ -52,7 +90,7 @@ public class DeviceLogEntity {
     }
 
     public void setDeviceId(String deviceId) {
-        this.deviceId = deviceId;
+        this.deviceId = deviceId == null ? "" : deviceId;
     }
 
     public String getCategory() {
@@ -60,7 +98,7 @@ public class DeviceLogEntity {
     }
 
     public void setCategory(String category) {
-        this.category = category;
+        this.category = category == null ? "" : category;
     }
 
     public String getAction() {
@@ -68,7 +106,7 @@ public class DeviceLogEntity {
     }
 
     public void setAction(String action) {
-        this.action = action;
+        this.action = action == null ? "" : action;
     }
 
     public String getMessage() {

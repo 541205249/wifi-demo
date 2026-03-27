@@ -7,6 +7,16 @@ android {
     defaultConfig {
         minSdk 26
         targetSdk 36
+
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments += [
+                        "room.schemaLocation" : "$projectDir/schemas".toString(),
+                        "room.incremental"    : "true",
+                        "room.expandProjection": "true"
+                ]
+            }
+        }
     }
 
     buildFeatures {
@@ -36,12 +46,12 @@ dependencies {
     api libs.lifecycle.viewmodel
     api libs.lifecycle.livedata
     api libs.rxjava
-    api libs.greendao
+    api libs.room.runtime
+    annotationProcessor libs.room.compiler
 
     implementation libs.jackson
     implementation libs.okhttp
     implementation libs.gson
-    implementation libs.greendaoUpgradeHelper
     implementation libs.documentfile
     implementation libs.zip4j
 }

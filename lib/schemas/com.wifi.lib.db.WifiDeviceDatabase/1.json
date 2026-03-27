@@ -1,0 +1,197 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "8ba4a0fc19d3e3138f095e54b0c95f7b",
+    "entities": [
+      {
+        "tableName": "TRACKED_DEVICE_ENTITY",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT, `DEVICE_ID` TEXT NOT NULL, `MAC_ADDRESS` TEXT, `LAST_KNOWN_IP` TEXT, `LAST_KNOWN_PORT` INTEGER, `LAST_LOCAL_IP` TEXT, `LAST_LOCAL_PORT` INTEGER, `LAST_SEEN_AT` INTEGER NOT NULL, `CURRENTLY_CONNECTED` INTEGER NOT NULL, `COMMUNICATION_COUNT` INTEGER NOT NULL, `CONNECTION_COUNT` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "_id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "deviceId",
+            "columnName": "DEVICE_ID",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "macAddress",
+            "columnName": "MAC_ADDRESS",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "lastKnownIp",
+            "columnName": "LAST_KNOWN_IP",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "lastKnownPort",
+            "columnName": "LAST_KNOWN_PORT",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "lastLocalIp",
+            "columnName": "LAST_LOCAL_IP",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "lastLocalPort",
+            "columnName": "LAST_LOCAL_PORT",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "lastSeenAt",
+            "columnName": "LAST_SEEN_AT",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currentlyConnected",
+            "columnName": "CURRENTLY_CONNECTED",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "communicationCount",
+            "columnName": "COMMUNICATION_COUNT",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "connectionCount",
+            "columnName": "CONNECTION_COUNT",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_TRACKED_DEVICE_ENTITY_DEVICE_ID",
+            "unique": true,
+            "columnNames": [
+              "DEVICE_ID"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_TRACKED_DEVICE_ENTITY_DEVICE_ID` ON `${TABLE_NAME}` (`DEVICE_ID`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "DEVICE_LOG_ENTITY",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT, `DEVICE_ID` TEXT NOT NULL, `CATEGORY` TEXT NOT NULL, `ACTION` TEXT NOT NULL, `MESSAGE` TEXT, `REMOTE_IP` TEXT, `REMOTE_PORT` INTEGER, `LOCAL_IP` TEXT, `LOCAL_PORT` INTEGER, `TIMESTAMP` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "_id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "deviceId",
+            "columnName": "DEVICE_ID",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "category",
+            "columnName": "CATEGORY",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "action",
+            "columnName": "ACTION",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "message",
+            "columnName": "MESSAGE",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "remoteIp",
+            "columnName": "REMOTE_IP",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "remotePort",
+            "columnName": "REMOTE_PORT",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "localIp",
+            "columnName": "LOCAL_IP",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "localPort",
+            "columnName": "LOCAL_PORT",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "TIMESTAMP",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_DEVICE_LOG_ENTITY_DEVICE_ID",
+            "unique": false,
+            "columnNames": [
+              "DEVICE_ID"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_DEVICE_LOG_ENTITY_DEVICE_ID` ON `${TABLE_NAME}` (`DEVICE_ID`)"
+          },
+          {
+            "name": "index_DEVICE_LOG_ENTITY_TIMESTAMP",
+            "unique": false,
+            "columnNames": [
+              "TIMESTAMP"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_DEVICE_LOG_ENTITY_TIMESTAMP` ON `${TABLE_NAME}` (`TIMESTAMP`)"
+          }
+        ],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '8ba4a0fc19d3e3138f095e54b0c95f7b')"
+    ]
+  }
+}

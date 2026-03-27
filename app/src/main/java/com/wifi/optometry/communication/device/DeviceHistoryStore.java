@@ -3,13 +3,13 @@ package com.wifi.optometry.communication.device;
 import android.content.Context;
 import android.text.TextUtils;
 
-import com.wifi.lib.db.DaoSession;
 import com.wifi.lib.db.DeviceLogEntity;
 import com.wifi.lib.db.DeviceLogEntityDao;
 import com.wifi.lib.db.TrackedDeviceEntity;
 import com.wifi.lib.db.TrackedDeviceEntityDao;
+import com.wifi.lib.db.WifiDeviceDatabase;
 import com.wifi.lib.db.WifiDeviceDbInitiator;
-import com.wifi.lib.db.WifiDeviceDbSessionProvider;
+import com.wifi.lib.db.WifiDeviceDbProvider;
 import com.wifi.lib.log.DLog;
 
 import java.text.SimpleDateFormat;
@@ -17,10 +17,15 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * 按设备归档历史连接与通信记录。
- * 当前底层持久化使用 greenDAO。
+ * 当前底层持久化使用 Room。
  */
 public class DeviceHistoryStore {
     private static final String TAG = "DeviceHistoryStore";
@@ -34,8 +39,10 @@ public class DeviceHistoryStore {
 
     private static volatile DeviceHistoryStore instance;
 
+    private final WifiDeviceDatabase database;
     private final TrackedDeviceEntityDao trackedDeviceDao;
     private final DeviceLogEntityDao deviceLogDao;
+    private final ExecutorService databaseExecutor = Executors.newSingleThreadExecutor();
 
     public enum LogFilter {
         ALL,
@@ -209,12 +216,9 @@ public class DeviceHistoryStore {
     private DeviceHistoryStore(Context context) {
         WifiDeviceDbInitiator dbInitiator = new WifiDeviceDbInitiator();
         dbInitiator.setup(context.getApplicationContext());
-        DaoSession daoSession = WifiDeviceDbSessionProvider.getInstance().getDaoSession();
-        if (daoSession == null) {
-            throw new IllegalStateException("DaoSession is not initialized");
-        }
-        trackedDeviceDao = daoSession.getTrackedDeviceEntityDao();
-        deviceLogDao = daoSession.getDeviceLogEntityDao();
+        database = WifiDeviceDbProvider.getDatabase(context.getApplicationContext());
+        trackedDeviceDao = database.getTrackedDeviceEntityDao();
+        deviceLogDao = database.getDeviceLogEntityDao();
         trace("历史仓库初始化完成，DAO 已就绪");
     }
 
@@ -268,16 +272,21 @@ public class DeviceHistoryStore {
     }
 
     public synchronized void markAllDevicesOffline() {
-        List<TrackedDeviceEntity> devices = trackedDeviceDao.loadAll();
-        int updatedCount = 0;
-        for (TrackedDeviceEntity device : devices) {
-            if (device.getCurrentlyConnected()) {
-                device.setCurrentlyConnected(false);
-                trackedDeviceDao.update(device);
-                updatedCount++;
-            }
-        }
-        trace("批量重置模块离线状态完成，updated=" + updatedCount);
+        runBlocking(() -> {
+            database.runInTransaction(() -> {
+                List<TrackedDeviceEntity> devices = trackedDeviceDao.loadAll();
+                int updatedCount = 0;
+                for (TrackedDeviceEntity device : devices) {
+                    if (device.getCurrentlyConnected()) {
+                        device.setCurrentlyConnected(false);
+                        trackedDeviceDao.update(device);
+                        updatedCount++;
+                    }
+                }
+                trace("批量重置模块离线状态完成，updated=" + updatedCount);
+            });
+            return null;
+        });
     }
 
     public synchronized void recordConnection(
@@ -311,29 +320,34 @@ public class DeviceHistoryStore {
             boolean connected,
             long timestamp
     ) {
-        TrackedDeviceEntity device = getOrCreateDevice(deviceId, macAddress);
-        updateDeviceSummary(device, macAddress, remoteIp, remotePort, localIp, localPort, timestamp);
-        device.setCurrentlyConnected(connected);
-        device.setConnectionCount(device.getConnectionCount() + 1);
-        saveDevice(device);
+        runBlocking(() -> {
+            database.runInTransaction(() -> {
+                TrackedDeviceEntity device = getOrCreateDevice(deviceId, macAddress);
+                updateDeviceSummary(device, macAddress, remoteIp, remotePort, localIp, localPort, timestamp);
+                device.setCurrentlyConnected(connected);
+                device.setConnectionCount(device.getConnectionCount() + 1);
+                saveDevice(device);
 
-        DeviceLogEntity log = new DeviceLogEntity(
-                null,
-                deviceId,
-                CATEGORY_CONNECTION,
-                connected ? ACTION_CONNECTED : ACTION_DISCONNECTED,
-                null,
-                remoteIp,
-                remotePort > 0 ? remotePort : null,
-                localIp,
-                localPort > 0 ? localPort : null,
-                timestamp
-        );
-        deviceLogDao.insert(log);
-        trimDeviceLogs(deviceId);
-        trace("连接记录已入库，deviceId=" + deviceId
-                + ", connected=" + connected
-                + ", remote=" + remoteIp + ":" + remotePort);
+                DeviceLogEntity log = new DeviceLogEntity(
+                        null,
+                        deviceId,
+                        CATEGORY_CONNECTION,
+                        connected ? ACTION_CONNECTED : ACTION_DISCONNECTED,
+                        null,
+                        remoteIp,
+                        remotePort > 0 ? remotePort : null,
+                        localIp,
+                        localPort > 0 ? localPort : null,
+                        timestamp
+                );
+                deviceLogDao.insert(log);
+                trimDeviceLogs(deviceId);
+            });
+            trace("连接记录已入库，deviceId=" + deviceId
+                    + ", connected=" + connected
+                    + ", remote=" + remoteIp + ":" + remotePort);
+            return null;
+        });
     }
 
     public synchronized void recordCommunication(
@@ -370,87 +384,81 @@ public class DeviceHistoryStore {
             String message,
             long timestamp
     ) {
-        TrackedDeviceEntity device = getOrCreateDevice(deviceId, macAddress);
-        updateDeviceSummary(device, macAddress, remoteIp, remotePort, localIp, localPort, timestamp);
-        device.setCommunicationCount(device.getCommunicationCount() + 1);
-        saveDevice(device);
+        runBlocking(() -> {
+            database.runInTransaction(() -> {
+                TrackedDeviceEntity device = getOrCreateDevice(deviceId, macAddress);
+                updateDeviceSummary(device, macAddress, remoteIp, remotePort, localIp, localPort, timestamp);
+                device.setCommunicationCount(device.getCommunicationCount() + 1);
+                saveDevice(device);
 
-        DeviceLogEntity log = new DeviceLogEntity(
-                null,
-                deviceId,
-                CATEGORY_COMMUNICATION,
-                action,
-                sanitizeMessage(message),
-                remoteIp,
-                remotePort > 0 ? remotePort : null,
-                localIp,
-                localPort > 0 ? localPort : null,
-                timestamp
-        );
-        deviceLogDao.insert(log);
-        trimDeviceLogs(deviceId);
-        trace("通信记录已入库，deviceId=" + deviceId
-                + ", action=" + action
-                + ", length=" + (message == null ? 0 : message.length()));
+                DeviceLogEntity log = new DeviceLogEntity(
+                        null,
+                        deviceId,
+                        CATEGORY_COMMUNICATION,
+                        action,
+                        sanitizeMessage(message),
+                        remoteIp,
+                        remotePort > 0 ? remotePort : null,
+                        localIp,
+                        localPort > 0 ? localPort : null,
+                        timestamp
+                );
+                deviceLogDao.insert(log);
+                trimDeviceLogs(deviceId);
+            });
+            trace("通信记录已入库，deviceId=" + deviceId
+                    + ", action=" + action
+                    + ", length=" + (message == null ? 0 : message.length()));
+            return null;
+        });
     }
 
     public synchronized List<DeviceSummary> getKnownDevices() {
-        List<DeviceSummary> result = new ArrayList<>();
-        List<TrackedDeviceEntity> devices = trackedDeviceDao.queryBuilder()
-                .orderDesc(TrackedDeviceEntityDao.Properties.LastSeenAt)
-                .list();
-        for (TrackedDeviceEntity device : devices) {
-            result.add(toSummary(device));
-        }
-        trace("查询已建档模块列表完成，count=" + result.size());
-        return result;
+        return runBlocking(() -> {
+            List<DeviceSummary> result = new ArrayList<>();
+            List<TrackedDeviceEntity> devices = trackedDeviceDao.loadAllOrderByLastSeenDesc();
+            for (TrackedDeviceEntity device : devices) {
+                result.add(toSummary(device));
+            }
+            trace("查询已建档模块列表完成，count=" + result.size());
+            return result;
+        });
     }
 
     public synchronized DeviceSummary getDeviceSummary(String deviceId) {
-        TrackedDeviceEntity device = findDevice(deviceId);
-        return device == null ? null : toSummary(device);
+        return runBlocking(() -> {
+            TrackedDeviceEntity device = findDevice(deviceId);
+            return device == null ? null : toSummary(device);
+        });
     }
 
     public synchronized List<DeviceLogEntry> getLogs(String deviceId, LogFilter filter) {
-        List<DeviceLogEntry> result = new ArrayList<>();
-        List<DeviceLogEntity> logs;
-        if (filter == LogFilter.COMMUNICATION) {
-            logs = deviceLogDao.queryBuilder()
-                    .where(
-                            DeviceLogEntityDao.Properties.DeviceId.eq(deviceId),
-                            DeviceLogEntityDao.Properties.Category.eq(CATEGORY_COMMUNICATION)
-                    )
-                    .orderDesc(DeviceLogEntityDao.Properties.Timestamp)
-                    .list();
-        } else if (filter == LogFilter.CONNECTION) {
-            logs = deviceLogDao.queryBuilder()
-                    .where(
-                            DeviceLogEntityDao.Properties.DeviceId.eq(deviceId),
-                            DeviceLogEntityDao.Properties.Category.eq(CATEGORY_CONNECTION)
-                    )
-                    .orderDesc(DeviceLogEntityDao.Properties.Timestamp)
-                    .list();
-        } else {
-            logs = deviceLogDao.queryBuilder()
-                    .where(DeviceLogEntityDao.Properties.DeviceId.eq(deviceId))
-                    .orderDesc(DeviceLogEntityDao.Properties.Timestamp)
-                    .list();
-        }
+        return runBlocking(() -> {
+            List<DeviceLogEntry> result = new ArrayList<>();
+            List<DeviceLogEntity> logs;
+            if (filter == LogFilter.COMMUNICATION) {
+                logs = deviceLogDao.loadByDeviceIdAndCategoryOrderByTimestampDesc(deviceId, CATEGORY_COMMUNICATION);
+            } else if (filter == LogFilter.CONNECTION) {
+                logs = deviceLogDao.loadByDeviceIdAndCategoryOrderByTimestampDesc(deviceId, CATEGORY_CONNECTION);
+            } else {
+                logs = deviceLogDao.loadByDeviceIdOrderByTimestampDesc(deviceId);
+            }
 
-        for (DeviceLogEntity log : logs) {
-            result.add(new DeviceLogEntry(
-                    log.getTimestamp(),
-                    log.getCategory(),
-                    log.getAction(),
-                    log.getMessage(),
-                    log.getRemoteIp(),
-                    safeInt(log.getRemotePort()),
-                    log.getLocalIp(),
-                    safeInt(log.getLocalPort())
-            ));
-        }
-        trace("查询模块日志完成，deviceId=" + deviceId + ", filter=" + filter + ", count=" + result.size());
-        return result;
+            for (DeviceLogEntity log : logs) {
+                result.add(new DeviceLogEntry(
+                        log.getTimestamp(),
+                        log.getCategory(),
+                        log.getAction(),
+                        log.getMessage(),
+                        log.getRemoteIp(),
+                        safeInt(log.getRemotePort()),
+                        log.getLocalIp(),
+                        safeInt(log.getLocalPort())
+                ));
+            }
+            trace("查询模块日志完成，deviceId=" + deviceId + ", filter=" + filter + ", count=" + result.size());
+            return result;
+        });
     }
 
     private TrackedDeviceEntity getOrCreateDevice(String deviceId, String macAddress) {
@@ -469,14 +477,12 @@ public class DeviceHistoryStore {
     }
 
     private TrackedDeviceEntity findDevice(String deviceId) {
-        return trackedDeviceDao.queryBuilder()
-                .where(TrackedDeviceEntityDao.Properties.DeviceId.eq(deviceId))
-                .unique();
+        return trackedDeviceDao.findByDeviceId(deviceId);
     }
 
     private void saveDevice(TrackedDeviceEntity device) {
         if (device.getId() == null) {
-            trackedDeviceDao.insert(device);
+            device.setId(trackedDeviceDao.insert(device));
         } else {
             trackedDeviceDao.update(device);
         }
@@ -503,13 +509,9 @@ public class DeviceHistoryStore {
     }
 
     private void trimDeviceLogs(String deviceId) {
-        List<DeviceLogEntity> allLogs = deviceLogDao.queryBuilder()
-                .where(DeviceLogEntityDao.Properties.DeviceId.eq(deviceId))
-                .orderAsc(DeviceLogEntityDao.Properties.Timestamp)
-                .list();
-        int overflow = allLogs.size() - MAX_LOGS_PER_DEVICE;
-        for (int index = 0; index < overflow; index++) {
-            deviceLogDao.delete(allLogs.get(index));
+        int overflow = deviceLogDao.countByDeviceId(deviceId) - MAX_LOGS_PER_DEVICE;
+        if (overflow > 0) {
+            deviceLogDao.deleteOldestLogs(deviceId, overflow);
         }
         if (overflow > 0) {
             trace("模块日志已裁剪，deviceId=" + deviceId + ", removed=" + overflow);
@@ -572,6 +574,22 @@ public class DeviceHistoryStore {
             return "未识别 MAC";
         }
         return "未识别 MAC (" + lastKnownIp + ")";
+    }
+
+    private <T> T runBlocking(Callable<T> callable) {
+        Future<T> future = databaseExecutor.submit(callable);
+        try {
+            return future.get();
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("数据库线程被中断", exception);
+        } catch (ExecutionException exception) {
+            Throwable cause = exception.getCause();
+            if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            }
+            throw new IllegalStateException("数据库操作失败", cause);
+        }
     }
 
     private void trace(String message) {
