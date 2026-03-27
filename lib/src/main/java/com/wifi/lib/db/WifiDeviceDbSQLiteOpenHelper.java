@@ -2,9 +2,8 @@ package com.wifi.lib.db;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
-import android.util.Log;
-
 import com.github.yuweiguocn.library.greendao.MigrationHelper;
+import com.wifi.lib.log.JLog;
 
 import org.greenrobot.greendao.database.Database;
 
@@ -21,7 +20,7 @@ public class WifiDeviceDbSQLiteOpenHelper extends DaoMaster.OpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        Log.i(TAG, "db onUpgrade: " + oldVersion + "--->" + newVersion);
+        JLog.i(TAG, "db onUpgrade: " + oldVersion + "--->" + newVersion);
         super.onUpgrade(db, oldVersion, newVersion);
         MigrationHelper.migrate(db, new MigrationHelper.ReCreateAllTableListener() {
                     @Override

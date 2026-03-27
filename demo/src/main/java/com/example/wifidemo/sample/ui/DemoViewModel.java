@@ -10,6 +10,7 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.example.wifidemo.sample.data.DemoRepository;
+import com.wifi.lib.log.JLog;
 import com.wifi.lib.mvvm.BaseViewModel;
 
 import java.util.List;
@@ -41,6 +42,7 @@ public class DemoViewModel extends BaseViewModel {
     }
 
     public void refreshRecords() {
+        JLog.i("DemoViewModel", "refreshRecords called");
         showLoading();
         handler.postDelayed(() -> {
             syncState("已从 Repository 刷新数据");
@@ -50,6 +52,7 @@ public class DemoViewModel extends BaseViewModel {
     }
 
     public void addMockRecord() {
+        JLog.i("DemoViewModel", "addMockRecord called");
         repository.appendRecord("模拟发送一条模块通信记录 #" + (repository.size() + 1));
         syncState("已新增演示记录");
         dispatchMessage("已新增一条示例记录");
@@ -57,17 +60,29 @@ public class DemoViewModel extends BaseViewModel {
 
     public void appendNote(String note) {
         if (TextUtils.isEmpty(note)) {
+            JLog.w("DemoViewModel", "appendNote ignored because note is empty");
             dispatchMessage("请输入备注内容");
             return;
         }
+        JLog.i("DemoViewModel", "appendNote: " + note.trim());
         repository.appendRecord("自定义备注：" + note.trim());
         syncState("已写入自定义备注");
     }
 
     public void updatePermissionState(boolean granted) {
+        JLog.i("DemoViewModel", granted ? "notification permission granted" : "notification permission denied");
         permissionStateLiveData.setValue(granted ? "通知权限：已授权" : "通知权限：已拒绝");
         repository.appendRecord(granted ? "权限授权成功：POST_NOTIFICATIONS" : "权限申请被拒绝：POST_NOTIFICATIONS");
         syncState(granted ? "权限已授权" : "权限被拒绝");
+    }
+
+    public void appendSystemRecord(String message) {
+        if (TextUtils.isEmpty(message)) {
+            return;
+        }
+        JLog.i("DemoViewModel", message);
+        repository.appendRecord(message);
+        syncState("日志导出动作已记录");
     }
 
     private void syncState(String prefix) {

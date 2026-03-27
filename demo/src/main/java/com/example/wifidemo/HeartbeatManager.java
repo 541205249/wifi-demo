@@ -2,8 +2,7 @@ package com.example.wifidemo;
 
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
-
+import com.wifi.lib.log.JLog;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -121,7 +120,7 @@ public class HeartbeatManager {
      * @param clientId 客户端 ID（IP 地址）
      */
     public void onClientConnected(String clientId) {
-        Log.i(TAG, "Client connected, start monitoring: " + clientId);
+        JLog.i(TAG, "Client connected, start monitoring: " + clientId);
         
         ClientHeartbeatInfo info = new ClientHeartbeatInfo();
         clientHeartbeatMap.put(clientId, info);
@@ -135,7 +134,7 @@ public class HeartbeatManager {
      * @param clientId 客户端 ID（IP 地址）
      */
     public void onClientDisconnected(String clientId) {
-        Log.i(TAG, "Client disconnected, stop heartbeat: " + clientId);
+        JLog.i(TAG, "Client disconnected, stop heartbeat: " + clientId);
         
         ClientHeartbeatInfo info = clientHeartbeatMap.remove(clientId);
         if (info != null) {
@@ -151,7 +150,7 @@ public class HeartbeatManager {
         ClientHeartbeatInfo info = clientHeartbeatMap.get(clientId);
         if (info != null) {
             info.lastMessageTime = System.currentTimeMillis();
-            Log.d(TAG, "Message received from " + clientId + ", reset heartbeat timer");
+        JLog.d(TAG, "Message received from " + clientId + ", reset heartbeat timer");
         }
     }
     
@@ -160,7 +159,7 @@ public class HeartbeatManager {
      */
     private void startHeartbeatMonitoring(String clientId, ClientHeartbeatInfo info) {
         if (info.isRunning) {
-            Log.w(TAG, "Heartbeat already running for client: " + clientId);
+        JLog.w(TAG, "Heartbeat already running for client: " + clientId);
             return;
         }
         
@@ -176,25 +175,25 @@ public class HeartbeatManager {
                 
                 // 检查是否超过最大保活时间
                 if (elapsedSinceStart >= MAX_KEEPALIVE_TIME) {
-                    Log.i(TAG, "Max keepalive time reached for " + clientId + ", stopping heartbeat");
+                    JLog.i(TAG, "Max keepalive time reached for " + clientId + ", stopping heartbeat");
                     stopHeartbeatForClient(clientId, info);
                     return;
                 }
                 
                 // 如果超过心跳间隔未收到消息，发送心跳
                 if (timeSinceLastMessage >= HEARTBEAT_INTERVAL) {
-                    Log.d(TAG, "Sending heartbeat to " + clientId);
+                    JLog.d(TAG, "Sending heartbeat to " + clientId);
                     sendHeartbeatInternal(clientId);
                     
                     // 更新最后消息时间，避免重复发送
                     info.lastMessageTime = System.currentTimeMillis();
                 }
             } catch (Exception e) {
-                Log.e(TAG, "Error in heartbeat task for " + clientId, e);
+                    JLog.e(TAG, "Error in heartbeat task for " + clientId, e);
             }
         }, HEARTBEAT_INTERVAL / 2, HEARTBEAT_INTERVAL / 2, TimeUnit.MILLISECONDS);
         
-        Log.i(TAG, "Started heartbeat monitoring for " + clientId);
+        JLog.i(TAG, "Started heartbeat monitoring for " + clientId);
     }
     
     /**
@@ -206,7 +205,7 @@ public class HeartbeatManager {
             info.scheduledFuture = null;
         }
         info.isRunning = false;
-        Log.i(TAG, "Stopped heartbeat for " + clientId);
+        JLog.i(TAG, "Stopped heartbeat for " + clientId);
     }
     
     /**
@@ -214,16 +213,16 @@ public class HeartbeatManager {
      */
     private void sendHeartbeatInternal(String clientId) {
         if (heartbeatSender == null) {
-            Log.w(TAG, "HeartbeatSender not set, cannot send heartbeat");
+            JLog.w(TAG, "HeartbeatSender not set, cannot send heartbeat");
             return;
         }
         
         executorService.execute(() -> {
             try {
                 heartbeatSender.sendHeartbeat(clientId, HEARTBEAT_MESSAGE);
-                Log.d(TAG, "Heartbeat sent to " + clientId);
+            JLog.d(TAG, "Heartbeat sent to " + clientId);
             } catch (Exception e) {
-                Log.e(TAG, "Failed to send heartbeat to " + clientId, e);
+            JLog.e(TAG, "Failed to send heartbeat to " + clientId, e);
             }
         });
     }
@@ -235,7 +234,7 @@ public class HeartbeatManager {
     public void triggerHeartbeat(String clientId) {
         ClientHeartbeatInfo info = clientHeartbeatMap.get(clientId);
         if (info != null) {
-            Log.d(TAG, "Manually triggering heartbeat for " + clientId);
+        JLog.d(TAG, "Manually triggering heartbeat for " + clientId);
             sendHeartbeatInternal(clientId);
             info.lastMessageTime = System.currentTimeMillis();
         }
@@ -245,7 +244,7 @@ public class HeartbeatManager {
      * 释放资源
      */
     public void destroy() {
-        Log.i(TAG, "Destroying HeartbeatManager");
+        JLog.i(TAG, "Destroying HeartbeatManager");
         
         // 停止所有心跳任务
         for (Map.Entry<String, ClientHeartbeatInfo> entry : clientHeartbeatMap.entrySet()) {

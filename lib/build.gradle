@@ -42,4 +42,6 @@ dependencies {
     implementation libs.okhttp
     implementation libs.gson
     implementation libs.greendaoUpgradeHelper
+    implementation libs.documentfile
+    implementation libs.zip4j
 }

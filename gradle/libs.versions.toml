@@ -13,6 +13,8 @@ okhttp = "4.12.0"
 gson = "2.13.1"
 greendao = "3.3.0"
 greendaoUpgradeHelper = "v2.0.2"
+documentfile = "1.0.1"
+zip4j = "2.11.5"
 
 [libraries]
 appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
@@ -29,6 +31,8 @@ okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhtt
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 greendao = { group = "org.greenrobot", name = "greendao", version.ref = "greendao" }
 greendaoUpgradeHelper = { group = "com.github.yuweiguocn", name = "GreenDaoUpgradeHelper", version.ref = "greendaoUpgradeHelper" }
+documentfile = { group = "androidx.documentfile", name = "documentfile", version.ref = "documentfile" }
+zip4j = { group = "net.lingala.zip4j", name = "zip4j", version.ref = "zip4j" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

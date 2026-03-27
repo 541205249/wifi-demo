@@ -3,7 +3,7 @@ package com.wifi.optometry.communication.device;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
-import android.util.Log;
+import com.wifi.lib.log.JLog;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -140,10 +140,10 @@ public class DeviceManager {
 
     public void addDevice(Socket socket, DeviceConnection deviceConnection) {
         String deviceId = deviceConnection.getDeviceId();
-        Log.i(TAG, "Adding new device: " + deviceId);
+            JLog.i(TAG, "Adding new device: " + deviceId);
 
         if (executorService.isShutdown() || executorService.isTerminated()) {
-            Log.w(TAG, "ExecutorService is shutdown, cannot add device: " + deviceId);
+                JLog.w(TAG, "ExecutorService is shutdown, cannot add device: " + deviceId);
             closeSocketQuietly(socket);
             return;
         }
@@ -157,9 +157,9 @@ public class DeviceManager {
 
         try {
             executorService.execute(handler);
-            Log.i(TAG, "Device added successfully, total devices: " + deviceMap.size());
+                JLog.i(TAG, "Device added successfully, total devices: " + deviceMap.size());
         } catch (Exception e) {
-            Log.e(TAG, "Failed to execute ClientHandler for " + deviceId, e);
+                JLog.e(TAG, "Failed to execute ClientHandler for " + deviceId, e);
             deviceMap.remove(deviceId);
             closeSocketQuietly(socket);
             return;
@@ -171,13 +171,13 @@ public class DeviceManager {
     }
 
     public void removeDevice(String deviceId) {
-        Log.i(TAG, "========================================");
-        Log.i(TAG, "Removing device: " + deviceId);
+        JLog.i(TAG, "========================================");
+        JLog.i(TAG, "Removing device: " + deviceId);
 
         ClientHandler handler = deviceMap.remove(deviceId);
         if (handler == null) {
-            Log.w(TAG, "No handler found for device: " + deviceId);
-            Log.i(TAG, "========================================");
+            JLog.w(TAG, "No handler found for device: " + deviceId);
+            JLog.i(TAG, "========================================");
             return;
         }
 
@@ -187,14 +187,14 @@ public class DeviceManager {
             mainHandler.post(() -> deviceListener.onDeviceDisconnected(deviceConnection));
         }
 
-        Log.i(TAG, "Device removed, remaining devices: " + deviceMap.size());
-        Log.i(TAG, "========================================");
+        JLog.i(TAG, "Device removed, remaining devices: " + deviceMap.size());
+        JLog.i(TAG, "========================================");
     }
 
     public DeviceConnection sendMessageToDevice(String deviceId, String message) {
         ClientHandler handler = deviceMap.get(deviceId);
         if (handler == null || !handler.isConnected()) {
-            Log.w(TAG, "Device not found or not connected: " + deviceId);
+            JLog.w(TAG, "Device not found or not connected: " + deviceId);
             return null;
         }
 
@@ -202,7 +202,7 @@ public class DeviceManager {
             executorService.execute(() -> handler.sendMessage(message));
             return handler.getDeviceConnection();
         } catch (Exception e) {
-            Log.e(TAG, "Failed to schedule message for device [" + deviceId + "]", e);
+            JLog.e(TAG, "Failed to schedule message for device [" + deviceId + "]", e);
             return null;
         }
     }
@@ -210,7 +210,7 @@ public class DeviceManager {
     public List<DeviceConnection> broadcastMessage(String message) {
         List<DeviceConnection> targets = new ArrayList<>();
         if (deviceMap.isEmpty()) {
-            Log.w(TAG, "No devices connected, cannot broadcast");
+            JLog.w(TAG, "No devices connected, cannot broadcast");
             return targets;
         }
 
@@ -223,11 +223,11 @@ public class DeviceManager {
                 executorService.execute(() -> handler.sendMessage(message));
                 targets.add(handler.getDeviceConnection());
             } catch (Exception e) {
-                Log.e(TAG, "Failed to schedule broadcast for [" + handler.getDeviceConnection().getDeviceId() + "]", e);
+                JLog.e(TAG, "Failed to schedule broadcast for [" + handler.getDeviceConnection().getDeviceId() + "]", e);
             }
         }
 
-        Log.i(TAG, "Broadcasted message to " + targets.size() + " devices");
+        JLog.i(TAG, "Broadcasted message to " + targets.size() + " devices");
         return targets;
     }
 
@@ -264,11 +264,11 @@ public class DeviceManager {
     }
 
     public void closeAllDevices() {
-        Log.i(TAG, "Closing all devices...");
+        JLog.i(TAG, "Closing all devices...");
         for (String deviceId : new ArrayList<>(deviceMap.keySet())) {
             removeDevice(deviceId);
         }
-        Log.i(TAG, "All devices closed");
+        JLog.i(TAG, "All devices closed");
     }
 
     public ClientHandler getDeviceHandler(String deviceId) {
@@ -306,7 +306,7 @@ public class DeviceManager {
                     }
 
                     String received = decodeMessage(buffer, 0, bytesRead);
-                    Log.i(TAG, "Received from device [" + deviceId + "]: " + received + " (bytes: " + bytesRead + ")");
+                    JLog.i(TAG, "Received from device [" + deviceId + "]: " + received + " (bytes: " + bytesRead + ")");
 
                     if (deviceListener != null) {
                         mainHandler.post(() -> deviceListener.onMessageReceived(deviceConnection, received));
@@ -314,10 +314,10 @@ public class DeviceManager {
                 }
             } catch (IOException e) {
                 if (connected) {
-                    Log.e(TAG, "========================================");
-                    Log.e(TAG, "Device [" + deviceId + "] disconnected unexpectedly");
-                    Log.e(TAG, "Exception: " + e.getMessage());
-                    Log.e(TAG, "========================================");
+                JLog.e(TAG, "========================================");
+                JLog.e(TAG, "Device [" + deviceId + "] disconnected unexpectedly");
+                JLog.e(TAG, "Exception: " + e.getMessage());
+                JLog.e(TAG, "========================================");
                 }
             } finally {
                 cleanup(true);
@@ -326,16 +326,16 @@ public class DeviceManager {
 
         public void sendMessage(String message) {
             if (out == null) {
-                Log.w(TAG, "Output stream is not ready for device [" + deviceId + "]");
+                JLog.w(TAG, "Output stream is not ready for device [" + deviceId + "]");
                 return;
             }
 
             try {
                 out.write((message + "\n").getBytes(messageCharset));
                 out.flush();
-                Log.i(TAG, "Sent to device [" + deviceId + "]: " + message);
+                JLog.i(TAG, "Sent to device [" + deviceId + "]: " + message);
             } catch (IOException e) {
-                Log.e(TAG, "Failed to send message to device [" + deviceId + "]", e);
+                JLog.e(TAG, "Failed to send message to device [" + deviceId + "]", e);
                 cleanup(true);
             }
         }
@@ -367,9 +367,9 @@ public class DeviceManager {
             out = null;
             socket = null;
 
-            Log.i(TAG, "========================================");
-            Log.i(TAG, "Device [" + deviceId + "] connection fully cleaned up");
-            Log.i(TAG, "========================================");
+            JLog.i(TAG, "========================================");
+            JLog.i(TAG, "Device [" + deviceId + "] connection fully cleaned up");
+            JLog.i(TAG, "========================================");
 
             boolean removed = deviceMap.remove(deviceId, this);
             if (notifyDisconnect && removed && deviceListener != null) {
@@ -384,27 +384,27 @@ public class DeviceManager {
                     return decoded;
                 }
             } catch (Exception e) {
-                Log.d(TAG, "Failed to decode with configured charset, trying fallback");
+            JLog.d(TAG, "Failed to decode with configured charset, trying fallback");
             }
 
             try {
                 String gbkDecoded = new String(buffer, offset, length, Charset.forName("GBK"));
                 if (!gbkDecoded.contains("?")) {
-                    Log.d(TAG, "Successfully decoded with GBK charset");
+            JLog.d(TAG, "Successfully decoded with GBK charset");
                     return gbkDecoded;
                 }
             } catch (Exception e) {
-                Log.d(TAG, "Failed to decode with GBK charset");
+            JLog.d(TAG, "Failed to decode with GBK charset");
             }
 
             try {
                 String isoDecoded = new String(buffer, offset, length, Charset.forName("ISO-8859-1"));
                 if (!isoDecoded.contains("?")) {
-                    Log.d(TAG, "Successfully decoded with ISO-8859-1 charset");
+            JLog.d(TAG, "Successfully decoded with ISO-8859-1 charset");
                     return isoDecoded;
                 }
             } catch (Exception e) {
-                Log.d(TAG, "Failed to decode with ISO-8859-1 charset");
+            JLog.d(TAG, "Failed to decode with ISO-8859-1 charset");
             }
 
             return new String(buffer, offset, length, StandardCharsets.UTF_8);
@@ -450,9 +450,9 @@ public class DeviceManager {
         }
         try {
             closeable.close();
-            Log.d(TAG, "Device [" + deviceId + "] " + streamName + " stream closed");
+                JLog.d(TAG, "Device [" + deviceId + "] " + streamName + " stream closed");
         } catch (IOException e) {
-            Log.e(TAG, "Error closing " + streamName + " stream for device [" + deviceId + "]", e);
+                JLog.e(TAG, "Error closing " + streamName + " stream for device [" + deviceId + "]", e);
         }
     }
 
@@ -465,7 +465,7 @@ public class DeviceManager {
                 socket.close();
             }
         } catch (IOException e) {
-            Log.e(TAG, "Error closing socket", e);
+                JLog.e(TAG, "Error closing socket", e);
         }
     }
 }
