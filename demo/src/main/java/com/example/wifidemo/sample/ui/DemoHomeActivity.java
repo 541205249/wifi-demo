@@ -1,5 +1,6 @@
 package com.example.wifidemo.sample.ui;
 
+import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -7,6 +8,7 @@ import androidx.annotation.Nullable;
 
 import com.example.wifidemo.R;
 import com.example.wifidemo.databinding.ActivityDemoHomeBinding;
+import com.example.wifidemo.sample.brvah.ui.BrvahDemoActivity;
 import com.wifi.lib.baseui.BaseConfirmDialog;
 import com.wifi.lib.mvvm.BaseMvvmActivity;
 
@@ -25,6 +27,9 @@ public class DemoHomeActivity extends BaseMvvmActivity<ActivityDemoHomeBinding, 
 
         binding.btnRefreshFromActivity.setOnClickListener(v -> viewModel.refreshRecords());
         binding.btnAddRecordFromActivity.setOnClickListener(v -> viewModel.addMockRecord());
+        binding.btnOpenBrvahDemo.setOnClickListener(v ->
+                startActivity(new Intent(this, BrvahDemoActivity.class))
+        );
 
         if (savedInstanceState == null) {
             getSupportFragmentManager()
@@ -44,7 +49,7 @@ public class DemoHomeActivity extends BaseMvvmActivity<ActivityDemoHomeBinding, 
     private void showIntroDialog() {
         BaseConfirmDialog dialog = new BaseConfirmDialog(this);
         dialog.setTitleTxt("示例说明");
-        dialog.setContentTxt("这个页面演示了 lib 中的 BaseUI、MVVM、Repository、权限代理、确认弹框和 BottomSheet 的基础用法。");
+        dialog.setContentTxt("这个页面演示了 lib 中的 BaseUI、MVVM、Repository、权限代理、确认弹框和 BottomSheet 的基础用法，同时提供了 BRVAH 场景集入口，方便你直接参考 RecyclerView 相关写法。");
         dialog.setOkTxt("知道了");
         dialog.hideCancelTv();
         dialog.show();

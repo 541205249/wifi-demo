@@ -1,7 +1,6 @@
 package com.wifi.lib.mvvm;
 
 import android.os.Bundle;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -9,6 +8,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.viewbinding.ViewBinding;
 
 import com.wifi.lib.baseui.BaseVBActivity;
+import com.wifi.lib.utils.Toasty;
 
 public abstract class BaseMvvmActivity<VB extends ViewBinding, VM extends BaseViewModel> extends BaseVBActivity<VB> {
     protected VM viewModel;
@@ -50,7 +50,7 @@ public abstract class BaseMvvmActivity<VB extends ViewBinding, VM extends BaseVi
         }
         if (enableDefaultMessageObserver()) {
             viewModel.getMessageEvent().observe(this, new EventObserver<>(
-                    message -> Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+                    Toasty::showShort
             ));
         }
     }

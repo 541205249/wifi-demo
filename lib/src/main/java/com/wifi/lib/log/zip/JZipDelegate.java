@@ -36,23 +36,47 @@ public class JZipDelegate {
     private Callback callback;
     private final ActivityResultLauncher<Intent> directoryPickerLauncher;
 
-    public JZipDelegate(@NonNull ComponentActivity activity) {
-        context = activity;
-        directoryPickerLauncher = activity.registerForActivityResult(
+    private JZipDelegate(
+            @NonNull Context context,
+            ActivityResultLauncher<Intent> directoryPickerLauncher
+    ) {
+        this.context = context;
+        this.directoryPickerLauncher = directoryPickerLauncher;
+    }
+
+    @NonNull
+    public static JZipDelegate withDirectoryPicker(@NonNull ComponentActivity activity) {
+        final JZipDelegate[] holder = new JZipDelegate[1];
+        ActivityResultLauncher<Intent> launcher = activity.registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
+                    JZipDelegate delegate = holder[0];
+                    if (delegate == null) {
+                        return;
+                    }
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                         Uri selectedUri = result.getData().getData();
-                        performCompression(selectedUri);
-                    } else if (callback != null) {
-                        notifyError("未选择导出目录");
+                        delegate.performCompression(selectedUri);
+                    } else if (delegate.callback != null) {
+                        delegate.notifyError("未选择导出目录");
                     }
                 }
         );
+        holder[0] = new JZipDelegate(activity, launcher);
+        return holder[0];
+    }
+
+    @NonNull
+    public static JZipDelegate withoutDirectoryPicker(@NonNull Context context) {
+        return new JZipDelegate(context, null);
     }
 
     public void exportToLocalDirectory(@NonNull Callback callback) {
         this.callback = callback;
+        if (directoryPickerLauncher == null) {
+            notifyError("日志导出组件尚未完成目录选择器注册");
+            return;
+        }
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
         intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         directoryPickerLauncher.launch(intent);

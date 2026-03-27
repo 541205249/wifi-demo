@@ -6,7 +6,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.activity.ComponentActivity;
 import androidx.annotation.NonNull;
@@ -19,6 +18,7 @@ import com.wifi.lib.baseui.BaseConfirmDialog;
 import com.wifi.lib.log.JLog;
 import com.wifi.lib.log.JLogExporter;
 import com.wifi.lib.mvvm.BaseMvvmFragment;
+import com.wifi.lib.utils.Toasty;
 
 import java.util.List;
 
@@ -67,14 +67,14 @@ public class DemoFeatureFragment extends BaseMvvmFragment<FragmentDemoFeatureBin
             public void onSuccess(@NonNull String message) {
                 JLog.i("DemoFeatureFragment", "exportToLocal success: " + message);
                 viewModel.appendSystemRecord("本地导出成功：" + message);
-                Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
+                Toasty.showLong(message);
             }
 
             @Override
             public void onError(@NonNull String errorMessage) {
                 JLog.e("DemoFeatureFragment", "exportToLocal failed: " + errorMessage);
                 viewModel.appendSystemRecord("本地导出失败：" + errorMessage);
-                Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_LONG).show();
+                Toasty.showLong(errorMessage);
             }
         });
         JLogExporter.get().hookToShare(activity, binding.btnShareLog, new JLogExporter.Callback() {
@@ -82,14 +82,14 @@ public class DemoFeatureFragment extends BaseMvvmFragment<FragmentDemoFeatureBin
             public void onSuccess(@NonNull String message) {
                 JLog.i("DemoFeatureFragment", "shareToSocial success: " + message);
                 viewModel.appendSystemRecord("社交分享已触发：" + message);
-                Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
+                Toasty.showLong(message);
             }
 
             @Override
             public void onError(@NonNull String errorMessage) {
                 JLog.e("DemoFeatureFragment", "shareToSocial failed: " + errorMessage);
                 viewModel.appendSystemRecord("社交分享失败：" + errorMessage);
-                Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_LONG).show();
+                Toasty.showLong(errorMessage);
             }
         });
     }

@@ -1,12 +1,15 @@
 package com.wifi.lib.log;
 
 import android.view.View;
-import android.widget.Toast;
 
 import androidx.activity.ComponentActivity;
 import androidx.annotation.NonNull;
+import androidx.lifecycle.Lifecycle;
 
 import com.wifi.lib.log.zip.JZipDelegate;
+
+import java.util.Map;
+import java.util.WeakHashMap;
 
 public class JLogExporter {
     public interface Callback {
@@ -19,6 +22,7 @@ public class JLogExporter {
     private static final int REQUIRED_CLICK_COUNT = 5;
 
     private static volatile JLogExporter instance;
+    private final Map<ComponentActivity, JZipDelegate> exportDelegateCache = new WeakHashMap<>();
 
     public static JLogExporter get() {
         if (instance == null) {
@@ -40,21 +44,26 @@ public class JLogExporter {
     }
 
     public void exportToLocalDirectory(@NonNull ComponentActivity activity, Callback callback) {
-        JZipDelegate zipDelegate = new JZipDelegate(activity);
+        JZipDelegate zipDelegate = getOrCreateExportDelegate(activity, callback);
+        if (zipDelegate == null) {
+            return;
+        }
         zipDelegate.exportToLocalDirectory(new DelegateCallback(callback));
     }
 
     public void shareToSocialApp(@NonNull ComponentActivity activity, Callback callback) {
-        JZipDelegate zipDelegate = new JZipDelegate(activity);
+        JZipDelegate zipDelegate = JZipDelegate.withoutDirectoryPicker(activity);
         zipDelegate.shareToSocialApp(new DelegateCallback(callback));
     }
 
     private void hook(@NonNull ComponentActivity activity, @NonNull View targetView, boolean exportToLocal, Callback callback) {
+        if (exportToLocal) {
+            getOrCreateExportDelegate(activity, callback);
+        }
         FiveClickTrigger trigger = new FiveClickTrigger();
         targetView.setOnClickListener(v -> {
             int remainingClicks = trigger.onClick();
             if (remainingClicks > 0) {
-                Toast.makeText(activity, "再连续点击 " + remainingClicks + " 次即可触发日志导出", Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -64,6 +73,26 @@ public class JLogExporter {
                 shareToSocialApp(activity, callback);
             }
         });
+    }
+
+    private JZipDelegate getOrCreateExportDelegate(@NonNull ComponentActivity activity, Callback callback) {
+        JZipDelegate cachedDelegate = exportDelegateCache.get(activity);
+        if (cachedDelegate != null) {
+            return cachedDelegate;
+        }
+
+        if (activity.getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)) {
+            String message = "日志导出组件需要在页面初始化阶段完成注册，请先在 onCreate 或 onViewCreated 中调用 hookToExport";
+            JLog.w("JLogExporter", message);
+            if (callback != null) {
+                callback.onError(message);
+            }
+            return null;
+        }
+
+        JZipDelegate delegate = JZipDelegate.withDirectoryPicker(activity);
+        exportDelegateCache.put(activity, delegate);
+        return delegate;
     }
 
     private static class DelegateCallback implements JZipDelegate.Callback {

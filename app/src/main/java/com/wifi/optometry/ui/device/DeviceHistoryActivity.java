@@ -2,11 +2,11 @@ package com.wifi.optometry.ui.device;
 
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 
 import com.wifi.lib.baseui.BaseVBActivity;
+import com.wifi.lib.utils.Toasty;
 import com.wifi.optometry.communication.device.DeviceHistoryStore;
 import com.wifi.optometry.R;
 import com.wifi.optometry.databinding.ActivityDeviceHistoryBinding;
@@ -25,7 +25,7 @@ public class DeviceHistoryActivity extends BaseVBActivity<ActivityDeviceHistoryB
         deviceHistoryStore = DeviceHistoryStore.getInstance(this);
         deviceId = getIntent().getStringExtra(EXTRA_DEVICE_ID);
         if (TextUtils.isEmpty(deviceId)) {
-            Toast.makeText(this, "未找到设备标识", Toast.LENGTH_SHORT).show();
+            Toasty.showShort("未找到设备标识");
             finish();
             return;
         }

@@ -4,7 +4,6 @@ import android.content.Context;
 import android.graphics.Typeface;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
@@ -13,6 +12,7 @@ import androidx.viewbinding.ViewBinding;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.wifi.lib.mvvm.BaseMvvmFragment;
+import com.wifi.lib.utils.Toasty;
 import com.wifi.optometry.R;
 import com.wifi.optometry.ui.MainActivity;
 import com.wifi.optometry.ui.state.ClinicViewModel;
@@ -55,7 +55,7 @@ public abstract class BaseClinicFragment<VB extends ViewBinding> extends BaseMvv
     }
 
     protected void showToast(String message) {
-        Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+        Toasty.showShort(message);
     }
 
     protected MaterialCardView createCard() {

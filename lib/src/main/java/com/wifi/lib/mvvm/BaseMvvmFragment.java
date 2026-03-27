@@ -2,7 +2,6 @@ package com.wifi.lib.mvvm;
 
 import android.app.Application;
 import android.os.Bundle;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -11,6 +10,7 @@ import androidx.lifecycle.ViewModelStoreOwner;
 import androidx.viewbinding.ViewBinding;
 
 import com.wifi.lib.baseui.BaseVBFragment;
+import com.wifi.lib.utils.Toasty;
 
 public abstract class BaseMvvmFragment<VB extends ViewBinding, VM extends BaseViewModel> extends BaseVBFragment<VB> {
     protected VM viewModel;
@@ -58,7 +58,7 @@ public abstract class BaseMvvmFragment<VB extends ViewBinding, VM extends BaseVi
         }
         if (enableDefaultMessageObserver()) {
             viewModel.getMessageEvent().observe(getViewLifecycleOwner(), new EventObserver<>(
-                    message -> Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                    Toasty::showShort
             ));
         }
     }

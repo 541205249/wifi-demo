@@ -19,7 +19,6 @@ import android.widget.EditText;
 import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -29,6 +28,7 @@ import androidx.core.content.ContextCompat;
 
 import com.example.wifidemo.device.DeviceHistoryStore;
 import com.example.wifidemo.device.DeviceManager;
+import com.wifi.lib.utils.Toasty;
 
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -157,7 +157,7 @@ public class MainActivity extends AppCompatActivity {
                 appendLog("通知权限已授予");
             } else {
                 appendLog("通知权限被拒绝，可能影响服务通知显示");
-                Toast.makeText(this, "通知权限被拒绝，可能影响服务通知显示", Toast.LENGTH_LONG).show();
+                Toasty.showLong("通知权限被拒绝，可能影响服务通知显示");
             }
         }
     }
@@ -219,7 +219,7 @@ public class MainActivity extends AppCompatActivity {
                 mainHandler.post(() -> {
                     String label = formatDeviceLabel(clientId);
                     appendLog("客户端已连接：" + label);
-                    Toast.makeText(MainActivity.this, "WiFi 模块已连接：" + label, Toast.LENGTH_SHORT).show();
+                    Toasty.showShort("WiFi 模块已连接：" + label);
                     updateClientList();
                     updateHistoryDeviceList();
                 });
@@ -239,7 +239,7 @@ public class MainActivity extends AppCompatActivity {
                 mainHandler.post(() -> {
                     String label = formatDeviceLabel(clientId);
                     appendLog("客户端已断开：" + label);
-                    Toast.makeText(MainActivity.this, "WiFi 模块已断开：" + label, Toast.LENGTH_SHORT).show();
+                    Toasty.showShort("WiFi 模块已断开：" + label);
                     updateClientList();
                     updateHistoryDeviceList();
                 });
@@ -249,7 +249,7 @@ public class MainActivity extends AppCompatActivity {
             public void onError(String error) {
                 mainHandler.post(() -> {
                     appendLog("错误：" + error);
-                    Toast.makeText(MainActivity.this, error, Toast.LENGTH_SHORT).show();
+                    Toasty.showShort(error);
                 });
             }
 
@@ -382,7 +382,7 @@ public class MainActivity extends AppCompatActivity {
 
         String message = etMessage.getText().toString().trim();
         if (TextUtils.isEmpty(message)) {
-            Toast.makeText(this, "请输入消息内容", Toast.LENGTH_SHORT).show();
+            Toasty.showShort("请输入消息内容");
             return;
         }
 
@@ -398,13 +398,13 @@ public class MainActivity extends AppCompatActivity {
 
         int selectedPosition = spinnerClients.getSelectedItemPosition();
         if (selectedPosition < 0 || selectedPosition >= connectedDeviceIds.size()) {
-            Toast.makeText(this, "请选择要发送的模块", Toast.LENGTH_SHORT).show();
+            Toasty.showShort("请选择要发送的模块");
             return;
         }
 
         String message = etMessage.getText().toString().trim();
         if (TextUtils.isEmpty(message)) {
-            Toast.makeText(this, "请输入消息内容", Toast.LENGTH_SHORT).show();
+            Toasty.showShort("请输入消息内容");
             return;
         }
 
@@ -417,7 +417,7 @@ public class MainActivity extends AppCompatActivity {
     private void openSelectedDeviceHistory() {
         int selectedPosition = spinnerHistoryDevices.getSelectedItemPosition();
         if (selectedPosition < 0 || selectedPosition >= knownDeviceIds.size()) {
-            Toast.makeText(this, "请选择要查看记录的设备", Toast.LENGTH_SHORT).show();
+            Toasty.showShort("请选择要查看记录的设备");
             return;
         }
 
@@ -464,7 +464,7 @@ public class MainActivity extends AppCompatActivity {
                         intent.setAction(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
                         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         startActivity(intent);
-                        Toast.makeText(this, "请手动将本应用加入电池优化白名单", Toast.LENGTH_LONG).show();
+                        Toasty.showLong("请手动将本应用加入电池优化白名单");
                     } catch (Exception innerError) {
                         appendLog("打开设置页面失败：" + innerError.getMessage());
                     }

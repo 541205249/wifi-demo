@@ -4,11 +4,11 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.widget.RadioGroup;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.wifidemo.device.DeviceHistoryStore;
+import com.wifi.lib.utils.Toasty;
 
 import java.util.List;
 
@@ -31,7 +31,7 @@ public class DeviceHistoryActivity extends AppCompatActivity {
         deviceHistoryStore = DeviceHistoryStore.getInstance(this);
         deviceId = getIntent().getStringExtra(EXTRA_DEVICE_ID);
         if (TextUtils.isEmpty(deviceId)) {
-            Toast.makeText(this, "未找到设备标识", Toast.LENGTH_SHORT).show();
+            Toasty.showShort("未找到设备标识");
             finish();
             return;
         }
