@@ -151,10 +151,16 @@ CSV 表头建议如下：
 
 建议每个业务模块在 `lib` 中维护一份固定编号目录，例如当前的：
 
+- `lib/src/main/java/com/wifi/lib/command/profile/OptometryCommandCodes.java`
 - `lib/src/main/java/com/wifi/lib/command/profile/OptometryCommandCatalogs.java`
 - `lib/src/main/java/com/wifi/lib/command/profile/OptometryCommandProfile.java`
 
-固定编号目录只负责“业务编号预留”，不负责保存真实命令字符串。真实命令仍然来自 CSV。
+其中：
+
+- `OptometryCommandCodes` 只负责定义稳定业务编号
+- `OptometryCommandCatalogs` 只负责把这些编号组装成预留目录
+
+真实命令仍然来自 CSV。
 
 例如：
 

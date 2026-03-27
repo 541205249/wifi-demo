@@ -16,7 +16,7 @@ import com.wifi.lib.command.CommandSettingsRepository;
 import com.wifi.lib.command.CommandTable;
 import com.wifi.lib.command.InboundCommand;
 import com.wifi.lib.command.OutboundCommand;
-import com.wifi.lib.command.profile.OptometryCommandCatalogs;
+import com.wifi.lib.command.profile.OptometryCommandCodes;
 import com.wifi.lib.command.profile.OptometryCommandProfile;
 import com.wifi.lib.log.DLog;
 import com.wifi.lib.mvvm.BaseViewModel;
@@ -164,19 +164,19 @@ public class CommandSettingsViewModel extends BaseViewModel {
     }
 
     private void registerInboundHandlers() {
-        commandEngine.registerInboundHandler(OptometryCommandCatalogs.CODE_REPORT_MODULE_INFO,
+        commandEngine.registerInboundHandler(OptometryCommandCodes.CODE_REPORT_MODULE_INFO,
                 command -> appendConsole("已按编码 " + command.getCode() + " 处理模块信息上报: " + command.getRawMessage()));
-        commandEngine.registerInboundHandler(OptometryCommandCatalogs.CODE_CONFIRM_AUTO_MODE,
+        commandEngine.registerInboundHandler(OptometryCommandCodes.CODE_CONFIRM_AUTO_MODE,
                 command -> appendConsole("已按编码 " + command.getCode() + " 处理自动模式切换确认: " + command.getRawMessage()));
-        commandEngine.registerInboundHandler(OptometryCommandCatalogs.CODE_CONFIRM_MANUAL_MODE,
+        commandEngine.registerInboundHandler(OptometryCommandCodes.CODE_CONFIRM_MANUAL_MODE,
                 command -> appendConsole("已按编码 " + command.getCode() + " 处理手动模式切换确认: " + command.getRawMessage()));
-        commandEngine.registerInboundHandler(OptometryCommandCatalogs.CODE_CONFIRM_START_OPTOMETRY,
+        commandEngine.registerInboundHandler(OptometryCommandCodes.CODE_CONFIRM_START_OPTOMETRY,
                 command -> appendConsole("已按编码 " + command.getCode() + " 处理开始验光确认: " + command.getRawMessage()));
-        commandEngine.registerInboundHandler(OptometryCommandCatalogs.CODE_CONFIRM_STOP_OPTOMETRY,
+        commandEngine.registerInboundHandler(OptometryCommandCodes.CODE_CONFIRM_STOP_OPTOMETRY,
                 command -> appendConsole("已按编码 " + command.getCode() + " 处理停止验光确认: " + command.getRawMessage()));
-        commandEngine.registerInboundHandler(OptometryCommandCatalogs.CODE_REPORT_DEVICE_STATUS,
+        commandEngine.registerInboundHandler(OptometryCommandCodes.CODE_REPORT_DEVICE_STATUS,
                 command -> appendConsole("已按编码 " + command.getCode() + " 处理设备状态上报: " + command.getRawMessage()));
-        commandEngine.registerInboundHandler(OptometryCommandCatalogs.CODE_REPORT_OPTOMETRY_RESULT,
+        commandEngine.registerInboundHandler(OptometryCommandCodes.CODE_REPORT_OPTOMETRY_RESULT,
                 command -> appendConsole("已按编码 " + command.getCode() + " 处理验光结果上报: " + command.getRawMessage()));
     }
 

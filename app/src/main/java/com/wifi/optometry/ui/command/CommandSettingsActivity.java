@@ -17,6 +17,7 @@ import androidx.annotation.Nullable;
 import com.wifi.lib.command.CommandViewHelper;
 import com.wifi.lib.command.OutboundCommand;
 import com.wifi.lib.command.profile.OptometryCommandCatalogs;
+import com.wifi.lib.command.profile.OptometryCommandCodes;
 import com.wifi.lib.log.DLog;
 import com.wifi.lib.mvvm.BaseMvvmActivity;
 import com.wifi.lib.utils.Toasty;
@@ -184,48 +185,48 @@ public class CommandSettingsActivity extends BaseMvvmActivity<ActivityCommandSet
     private void bindCommandButtons() {
         CommandViewHelper.bindClickWithCodeHint(
                 binding.btnQueryModuleInfo,
-                OptometryCommandCatalogs.requireReservation(OptometryCommandCatalogs.CODE_QUERY_MODULE_INFO),
-                v -> sendToTarget(OptometryCommandCatalogs.CODE_QUERY_MODULE_INFO, null)
+                OptometryCommandCatalogs.requireReservation(OptometryCommandCodes.CODE_QUERY_MODULE_INFO),
+                v -> sendToTarget(OptometryCommandCodes.CODE_QUERY_MODULE_INFO, null)
         );
         CommandViewHelper.bindClickWithCodeHint(
                 binding.btnSwitchAutoMode,
-                OptometryCommandCatalogs.requireReservation(OptometryCommandCatalogs.CODE_SWITCH_AUTO_MODE),
+                OptometryCommandCatalogs.requireReservation(OptometryCommandCodes.CODE_SWITCH_AUTO_MODE),
                 v -> sendToTarget(
-                        OptometryCommandCatalogs.CODE_SWITCH_AUTO_MODE,
+                        OptometryCommandCodes.CODE_SWITCH_AUTO_MODE,
                         viewModel.createModeArgument("AUTO")
                 )
         );
         CommandViewHelper.bindClickWithCodeHint(
                 binding.btnSwitchManualMode,
-                OptometryCommandCatalogs.requireReservation(OptometryCommandCatalogs.CODE_SWITCH_MANUAL_MODE),
+                OptometryCommandCatalogs.requireReservation(OptometryCommandCodes.CODE_SWITCH_MANUAL_MODE),
                 v -> sendToTarget(
-                        OptometryCommandCatalogs.CODE_SWITCH_MANUAL_MODE,
+                        OptometryCommandCodes.CODE_SWITCH_MANUAL_MODE,
                         viewModel.createModeArgument("MANUAL")
                 )
         );
         CommandViewHelper.bindClickWithCodeHint(
                 binding.btnStartOptometry,
-                OptometryCommandCatalogs.requireReservation(OptometryCommandCatalogs.CODE_START_OPTOMETRY),
-                v -> sendToTarget(OptometryCommandCatalogs.CODE_START_OPTOMETRY, null)
+                OptometryCommandCatalogs.requireReservation(OptometryCommandCodes.CODE_START_OPTOMETRY),
+                v -> sendToTarget(OptometryCommandCodes.CODE_START_OPTOMETRY, null)
         );
         CommandViewHelper.bindClickWithCodeHint(
                 binding.btnStopOptometry,
-                OptometryCommandCatalogs.requireReservation(OptometryCommandCatalogs.CODE_STOP_OPTOMETRY),
-                v -> sendToTarget(OptometryCommandCatalogs.CODE_STOP_OPTOMETRY, null)
+                OptometryCommandCatalogs.requireReservation(OptometryCommandCodes.CODE_STOP_OPTOMETRY),
+                v -> sendToTarget(OptometryCommandCodes.CODE_STOP_OPTOMETRY, null)
         );
         CommandViewHelper.bindClickWithCodeHint(
                 binding.btnMockModuleInfo,
-                OptometryCommandCatalogs.requireReservation(OptometryCommandCatalogs.CODE_REPORT_MODULE_INFO),
+                OptometryCommandCatalogs.requireReservation(OptometryCommandCodes.CODE_REPORT_MODULE_INFO),
                 v -> viewModel.onIncomingMessage("模拟模块", "INFO+HC25,FW=1.0.0")
         );
         CommandViewHelper.bindClickWithCodeHint(
                 binding.btnMockDeviceStatus,
-                OptometryCommandCatalogs.requireReservation(OptometryCommandCatalogs.CODE_REPORT_DEVICE_STATUS),
+                OptometryCommandCatalogs.requireReservation(OptometryCommandCodes.CODE_REPORT_DEVICE_STATUS),
                 v -> viewModel.onIncomingMessage("模拟模块", "STATUS+READY")
         );
         CommandViewHelper.bindClickWithCodeHint(
                 binding.btnMockOptometryResult,
-                OptometryCommandCatalogs.requireReservation(OptometryCommandCatalogs.CODE_REPORT_OPTOMETRY_RESULT),
+                OptometryCommandCatalogs.requireReservation(OptometryCommandCodes.CODE_REPORT_OPTOMETRY_RESULT),
                 v -> viewModel.onIncomingMessage("模拟模块", "RESULT+SPH=-1.25,CYL=-0.50,AXIS=180")
         );
     }
