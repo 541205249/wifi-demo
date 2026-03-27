@@ -5,6 +5,7 @@ import android.text.TextUtils;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.wifi.lib.log.DLog;
 import com.wifi.lib.mvvm.BaseRepository;
 import com.wifi.optometry.communication.ServerConstance;
 import com.wifi.optometry.domain.ExamWorkflowEngine;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class ClinicRepository extends BaseRepository {
+    private static final String TAG = "ClinicRepository";
     private static volatile ClinicRepository instance;
 
     private final MutableLiveData<List<PatientProfile>> patientListLiveData = new MutableLiveData<>();
@@ -64,6 +66,9 @@ public class ClinicRepository extends BaseRepository {
         history.add(createReportRecord(session, programs));
         reportHistoryLiveData.setValue(history);
         rebuildDerivedData();
+        trace("Repository 初始化完成，patients=" + patients.size()
+                + ", charts=" + charts.size()
+                + ", programs=" + programs.size());
     }
 
     public static ClinicRepository getInstance() {
@@ -125,6 +130,7 @@ public class ClinicRepository extends BaseRepository {
         List<PatientProfile> all = safeList(patientListLiveData.getValue());
         if (TextUtils.isEmpty(query)) {
             patientSearchLiveData.setValue(new ArrayList<>(all));
+            trace("患者搜索重置为全量列表，数量=" + all.size());
             return;
         }
 
@@ -137,6 +143,7 @@ public class ClinicRepository extends BaseRepository {
             }
         }
         patientSearchLiveData.setValue(result);
+        trace("患者搜索完成，query=" + query + ", result=" + result.size());
     }
 
     public void savePatient(PatientProfile editedProfile) {
@@ -166,6 +173,7 @@ public class ClinicRepository extends BaseRepository {
         session.setPatient(editedProfile.copy());
         sessionLiveData.setValue(session);
         rebuildDerivedData();
+        trace("患者资料已保存，id=" + editedProfile.getId() + ", total=" + patients.size());
     }
 
     public void selectPatient(String patientId) {
@@ -178,6 +186,7 @@ public class ClinicRepository extends BaseRepository {
                 session.setPatient(patient.copy());
                 sessionLiveData.setValue(session);
                 rebuildDerivedData();
+                trace("已切换当前患者，patientId=" + patientId);
                 return;
             }
         }
@@ -187,24 +196,28 @@ public class ClinicRepository extends BaseRepository {
         ExamSession session = requireSession();
         session.setSelectedChartId(chartId);
         sessionLiveData.setValue(session);
+        trace("已切换视标，chartId=" + chartId);
     }
 
     public void selectField(ExamSession.MeasurementField field) {
         ExamSession session = requireSession();
         session.setSelectedField(field);
         sessionLiveData.setValue(session);
+        trace("已切换验光字段，field=" + field);
     }
 
     public void setActiveEye(ExamSession.EyeSelection selection) {
         ExamSession session = requireSession();
         session.setActiveEye(selection);
         sessionLiveData.setValue(session);
+        trace("已切换生效眼别，selection=" + selection);
     }
 
     public void setLensVisibility(ExamSession.EyeSelection selection) {
         ExamSession session = requireSession();
         session.setLensVisibility(selection);
         sessionLiveData.setValue(session);
+        trace("已切换镜片显示范围，selection=" + selection);
     }
 
     public void toggleDistanceMode() {
@@ -213,6 +226,7 @@ public class ClinicRepository extends BaseRepository {
                 ? ExamSession.DistanceMode.NEAR : ExamSession.DistanceMode.FAR);
         sessionLiveData.setValue(session);
         rebuildDerivedData();
+        trace("已切换远近模式，current=" + session.getDistanceMode());
     }
 
     public void togglePrismMode() {
@@ -220,6 +234,7 @@ public class ClinicRepository extends BaseRepository {
         session.setPrismMode(session.getPrismMode() == ExamSession.PrismMode.CARTESIAN
                 ? ExamSession.PrismMode.POLAR : ExamSession.PrismMode.CARTESIAN);
         sessionLiveData.setValue(session);
+        trace("已切换棱镜模式，current=" + session.getPrismMode());
     }
 
     public void toggleCylMode() {
@@ -231,24 +246,28 @@ public class ClinicRepository extends BaseRepository {
         normalizeCylinderSign(session.getNearLeft(), session.isCylMinusMode());
         sessionLiveData.setValue(session);
         rebuildDerivedData();
+        trace("已切换柱镜记法，minusMode=" + session.isCylMinusMode());
     }
 
     public void toggleCpLink() {
         ExamSession session = requireSession();
         session.setCpLinked(!session.isCpLinked());
         sessionLiveData.setValue(session);
+        trace("已切换 CP 联动，enabled=" + session.isCpLinked());
     }
 
     public void toggleLensInserted() {
         ExamSession session = requireSession();
         session.setLensInserted(!session.isLensInserted());
         sessionLiveData.setValue(session);
+        trace("已切换镜片插入状态，inserted=" + session.isLensInserted());
     }
 
     public void toggleShiftEnabled() {
         ExamSession session = requireSession();
         session.setShiftEnabled(!session.isShiftEnabled());
         sessionLiveData.setValue(session);
+        trace("已切换 Shift 步进，enabled=" + session.isShiftEnabled());
     }
 
     public void toggleNearLamp() {
@@ -256,6 +275,7 @@ public class ClinicRepository extends BaseRepository {
         session.getFunctionalTests().setNearLampOn(!session.getFunctionalTests().isNearLampOn());
         sessionLiveData.setValue(session);
         rebuildDerivedData();
+        trace("已切换近用灯状态，enabled=" + session.getFunctionalTests().isNearLampOn());
     }
 
     public void adjustSelectedMeasurement(boolean increase, boolean useShiftStep) {
@@ -268,6 +288,10 @@ public class ClinicRepository extends BaseRepository {
         applyMeasurementDelta(session, delta);
         sessionLiveData.setValue(session);
         rebuildDerivedData();
+        trace("验光值调整完成，field=" + session.getSelectedField()
+                + ", delta=" + delta
+                + ", eye=" + session.getActiveEye()
+                + ", mode=" + session.getDistanceMode());
     }
 
     public void adjustFunctionalValue(String key, boolean increase) {
@@ -293,6 +317,7 @@ public class ClinicRepository extends BaseRepository {
         }
         sessionLiveData.setValue(session);
         rebuildDerivedData();
+        trace("视功能数值调整完成，key=" + key + ", increase=" + increase);
     }
 
     public void markFunctionEvent(String key, String label) {
@@ -310,6 +335,7 @@ public class ClinicRepository extends BaseRepository {
         }
         sessionLiveData.setValue(session);
         rebuildDerivedData();
+        trace("视功能事件已标记，key=" + key + ", label=" + label);
     }
 
     public void selectProgram(String programId) {
@@ -318,6 +344,7 @@ public class ClinicRepository extends BaseRepository {
         session.setCurrentStepIndex(0);
         sessionLiveData.setValue(session);
         rebuildDerivedData();
+        trace("已切换验光流程，programId=" + programId);
     }
 
     public void moveToNextStep() {
@@ -325,6 +352,7 @@ public class ClinicRepository extends BaseRepository {
         ExamWorkflowEngine.moveNext(session, safeList(programListLiveData.getValue()));
         sessionLiveData.setValue(session);
         rebuildDerivedData();
+        trace("流程推进到下一步，index=" + session.getCurrentStepIndex());
     }
 
     public void moveToPreviousStep() {
@@ -332,6 +360,7 @@ public class ClinicRepository extends BaseRepository {
         ExamWorkflowEngine.movePrevious(session, safeList(programListLiveData.getValue()));
         sessionLiveData.setValue(session);
         rebuildDerivedData();
+        trace("流程回退到上一步，index=" + session.getCurrentStepIndex());
     }
 
     public void appendCustomStep(String note) {
@@ -360,6 +389,7 @@ public class ClinicRepository extends BaseRepository {
         ));
         programListLiveData.setValue(programs);
         rebuildDerivedData();
+        trace("已追加自定义流程节点，stepId=" + stepId);
     }
 
     public void updateCurrentStepNote(String note) {
@@ -369,22 +399,26 @@ public class ClinicRepository extends BaseRepository {
         }
         step.setNote(note);
         currentStepLiveData.setValue(step);
+        trace("已更新当前步骤备注");
     }
 
     public void updateSessionNote(String note) {
         ExamSession session = requireSession();
         session.setNote(note);
         sessionLiveData.setValue(session);
+        trace("已更新会话备注");
     }
 
     public void saveSettings(ClinicSettings settings) {
         settingsLiveData.setValue(settings.copy());
+        trace("门店设置已保存");
     }
 
     public void saveCurrentReport() {
         List<ReportRecord> history = safeList(reportHistoryLiveData.getValue());
         history.add(0, createReportRecord(requireSession(), safeList(programListLiveData.getValue())));
         reportHistoryLiveData.setValue(history);
+        trace("当前报告已保存，history=" + history.size());
     }
 
     public void importLatestReport() {
@@ -403,6 +437,7 @@ public class ClinicRepository extends BaseRepository {
         session.setNote("已导入最近一次报告：" + ClinicFormatters.formatTimestamp(latest.getCreatedAt()));
         sessionLiveData.setValue(session);
         rebuildDerivedData();
+        trace("最近一次报告已导入，reportId=" + latest.getId());
     }
 
     public void updateServerState(boolean running, String ipAddress) {
@@ -410,18 +445,21 @@ public class ClinicRepository extends BaseRepository {
         state.setServerRunning(running);
         state.setLocalIp(ipAddress);
         deviceUiStateLiveData.setValue(state);
+        trace("设备服务状态已同步，running=" + running + ", ip=" + ipAddress);
     }
 
     public void setPendingDeviceMessage(String message) {
         DeviceUiState state = requireDeviceState();
         state.setPendingMessage(message);
         deviceUiStateLiveData.setValue(state);
+        trace("待发送消息已更新，length=" + (message == null ? 0 : message.length()));
     }
 
     public void selectConnectedDevice(String clientId) {
         DeviceUiState state = requireDeviceState();
         state.setSelectedClientId(clientId);
         deviceUiStateLiveData.setValue(state);
+        trace("当前在线模块已切换，clientId=" + clientId);
     }
 
     public void updateConnectedDevices(List<ConnectedDeviceInfo> devices) {
@@ -432,6 +470,7 @@ public class ClinicRepository extends BaseRepository {
             state.setSelectedClientId(devices.get(0).getClientId());
         }
         deviceUiStateLiveData.setValue(state);
+        trace("在线模块列表已更新，count=" + devices.size());
     }
 
     public void updateKnownDevices(List<KnownDeviceSummary> devices) {
@@ -439,6 +478,7 @@ public class ClinicRepository extends BaseRepository {
         state.getKnownDevices().clear();
         state.getKnownDevices().addAll(devices);
         deviceUiStateLiveData.setValue(state);
+        trace("已建档模块列表已更新，count=" + devices.size());
     }
 
     public void appendDeviceLog(String line) {
@@ -454,6 +494,8 @@ public class ClinicRepository extends BaseRepository {
         currentStepLiveData.setValue(ExamWorkflowEngine.getCurrentStep(requireSession(), safeList(programListLiveData.getValue())));
         currentMetricsLiveData.setValue(buildVisualMetrics(requireSession()));
         qrPayloadLiveData.setValue(buildQrPayload(requireSession(), safeList(programListLiveData.getValue())));
+        ExamStep currentStep = currentStepLiveData.getValue();
+        trace("派生数据已重建，currentStep=" + (currentStep == null ? "none" : currentStep.getId()));
     }
 
     private void applyMeasurementDelta(ExamSession session, double delta) {
@@ -671,4 +713,9 @@ public class ClinicRepository extends BaseRepository {
         }
         return ExamStep.EyeScope.RIGHT;
     }
+
+    private void trace(String message) {
+        DLog.i(TAG, message);
+    }
 }
+

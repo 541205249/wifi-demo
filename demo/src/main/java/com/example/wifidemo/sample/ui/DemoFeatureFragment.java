@@ -7,7 +7,6 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.widget.TextView;
 
-import androidx.activity.ComponentActivity;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
@@ -15,10 +14,7 @@ import androidx.core.content.ContextCompat;
 import com.example.wifidemo.R;
 import com.example.wifidemo.databinding.FragmentDemoFeatureBinding;
 import com.wifi.lib.baseui.BaseConfirmDialog;
-import com.wifi.lib.log.JLog;
-import com.wifi.lib.log.JLogExporter;
 import com.wifi.lib.mvvm.BaseMvvmFragment;
-import com.wifi.lib.utils.Toasty;
 
 import java.util.List;
 
@@ -60,38 +56,6 @@ public class DemoFeatureFragment extends BaseMvvmFragment<FragmentDemoFeatureBin
         binding.btnShowConfirm.setOnClickListener(v -> showConfirmDialog());
         binding.btnShowSheet.setOnClickListener(v -> new DemoTipsBottomSheetDialog(requireContext()).show());
         binding.btnRequestPermission.setOnClickListener(v -> requestNotificationPermission());
-
-        ComponentActivity activity = (ComponentActivity) requireActivity();
-        JLogExporter.get().hookToExport(activity, binding.btnExportLocalLog, new JLogExporter.Callback() {
-            @Override
-            public void onSuccess(@NonNull String message) {
-                JLog.i("DemoFeatureFragment", "exportToLocal success: " + message);
-                viewModel.appendSystemRecord("本地导出成功：" + message);
-                Toasty.showLong(message);
-            }
-
-            @Override
-            public void onError(@NonNull String errorMessage) {
-                JLog.e("DemoFeatureFragment", "exportToLocal failed: " + errorMessage);
-                viewModel.appendSystemRecord("本地导出失败：" + errorMessage);
-                Toasty.showLong(errorMessage);
-            }
-        });
-        JLogExporter.get().hookToShare(activity, binding.btnShareLog, new JLogExporter.Callback() {
-            @Override
-            public void onSuccess(@NonNull String message) {
-                JLog.i("DemoFeatureFragment", "shareToSocial success: " + message);
-                viewModel.appendSystemRecord("社交分享已触发：" + message);
-                Toasty.showLong(message);
-            }
-
-            @Override
-            public void onError(@NonNull String errorMessage) {
-                JLog.e("DemoFeatureFragment", "shareToSocial failed: " + errorMessage);
-                viewModel.appendSystemRecord("社交分享失败：" + errorMessage);
-                Toasty.showLong(errorMessage);
-            }
-        });
     }
 
     @Override

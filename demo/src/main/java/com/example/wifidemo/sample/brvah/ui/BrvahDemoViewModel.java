@@ -15,6 +15,7 @@ import com.example.wifidemo.clinic.model.VisionChart;
 import com.example.wifidemo.sample.brvah.data.BrvahDemoRepository;
 import com.example.wifidemo.sample.brvah.model.BrvahReportUiState;
 import com.example.wifidemo.sample.brvah.model.BrvahWorkflowItem;
+import com.wifi.lib.log.DLog;
 import com.wifi.lib.log.JLog;
 import com.wifi.lib.mvvm.BaseViewModel;
 
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class BrvahDemoViewModel extends BaseViewModel {
+    private static final String TAG = "BrvahDemoViewModel";
     private final BrvahDemoRepository repository = new BrvahDemoRepository();
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
@@ -46,6 +48,7 @@ public class BrvahDemoViewModel extends BaseViewModel {
     public BrvahDemoViewModel(@NonNull Application application) {
         super(application);
         allReports = repository.createAllReports();
+        DLog.i(TAG, "BRVAH 示例 ViewModel 初始化完成，reports=" + allReports.size());
         resetDevices();
         resetCharts();
         resetWorkflow();
@@ -83,17 +86,20 @@ public class BrvahDemoViewModel extends BaseViewModel {
 
     public void resetDevices() {
         JLog.i("BrvahDemoViewModel", "resetDevices");
+        DLog.i(TAG, "重置模块示例列表");
         devicesLiveData.setValue(repository.createKnownDevices());
     }
 
     public void clearDevices() {
         JLog.i("BrvahDemoViewModel", "clearDevices");
+        DLog.i(TAG, "清空模块示例列表");
         devicesLiveData.setValue(new ArrayList<>());
         dispatchMessage("已切到空列表，方便查看 EmptyView 效果");
     }
 
     public void resetCharts() {
         JLog.i("BrvahDemoViewModel", "resetCharts");
+        DLog.i(TAG, "重置视标示例列表");
         chartsLiveData.setValue(repository.createVisionCharts());
     }
 
@@ -102,12 +108,14 @@ public class BrvahDemoViewModel extends BaseViewModel {
         if (current.size() > 1) {
             Collections.rotate(current, 1);
             chartsLiveData.setValue(current);
+            DLog.i(TAG, "轮换视标宫格顺序");
             dispatchMessage("已轮换宫格顺序");
         }
     }
 
     public void resetWorkflow() {
         JLog.i("BrvahDemoViewModel", "resetWorkflow");
+        DLog.i(TAG, "重置工作流示例列表");
         workflowLiveData.setValue(repository.createWorkflowItems());
     }
 
@@ -121,11 +129,13 @@ public class BrvahDemoViewModel extends BaseViewModel {
                 "新插入"
         ));
         workflowLiveData.setValue(current);
+        DLog.i(TAG, "追加工作流提醒卡片");
         dispatchMessage("已追加一条多布局提醒");
     }
 
     public void resetPrograms() {
         JLog.i("BrvahDemoViewModel", "resetPrograms");
+        DLog.i(TAG, "重置流程拖拽示例列表");
         programsLiveData.setValue(repository.createExamPrograms());
     }
 
@@ -139,15 +149,18 @@ public class BrvahDemoViewModel extends BaseViewModel {
         );
         current.add(0, followUp);
         programsLiveData.setValue(current);
+        DLog.i(TAG, "插入新的流程卡片，programId=" + followUp.getId());
         dispatchMessage("已插入一个新的流程卡片");
     }
 
     public void persistPrograms(@NonNull List<ExamProgram> programs) {
         programsLiveData.setValue(new ArrayList<>(programs));
+        DLog.d(TAG, "持久化拖拽后的流程列表，count=" + programs.size());
     }
 
     public void resetReportPaging() {
         JLog.i("BrvahDemoViewModel", "resetReportPaging");
+        DLog.i(TAG, "重置报告分页状态");
         handler.removeCallbacksAndMessages(null);
         loadedReports.clear();
         reportPageIndex = 0;
@@ -162,19 +175,23 @@ public class BrvahDemoViewModel extends BaseViewModel {
 
     public void loadNextReportPage() {
         if (reportLoading) {
+            DLog.w(TAG, "忽略重复分页请求，当前仍在加载");
             return;
         }
         boolean hasMore = loadedReports.size() < allReports.size();
         if (!hasMore) {
+            DLog.i(TAG, "报告分页已到底");
             updateReportState(BrvahReportUiState.STATUS_COMPLETE, null);
             return;
         }
         reportLoading = true;
+        DLog.i(TAG, "开始加载下一页报告，pageIndex=" + reportPageIndex);
         updateReportState(BrvahReportUiState.STATUS_LOADING, null);
         handler.postDelayed(() -> {
             if (reportPageIndex == 1 && !reportErrorInjected) {
                 reportErrorInjected = true;
                 reportLoading = false;
+                DLog.w(TAG, "按计划注入一次分页错误，pageIndex=" + reportPageIndex);
                 updateReportState(BrvahReportUiState.STATUS_ERROR, "第 2 页模拟网络抖动，点击底部重试即可继续");
                 dispatchMessage("已模拟一次分页失败，方便查看 BRVAH 的错误重试态");
                 return;
@@ -183,6 +200,7 @@ public class BrvahDemoViewModel extends BaseViewModel {
             loadedReports.addAll(nextPage);
             reportPageIndex++;
             reportLoading = false;
+            DLog.i(TAG, "报告分页加载完成，loaded=" + loadedReports.size() + ", nextPageIndex=" + reportPageIndex);
             if (loadedReports.size() >= allReports.size()) {
                 updateReportState(BrvahReportUiState.STATUS_COMPLETE, null);
             } else {
@@ -193,11 +211,13 @@ public class BrvahDemoViewModel extends BaseViewModel {
 
     public void retryLoadMoreReports() {
         JLog.i("BrvahDemoViewModel", "retryLoadMoreReports");
+        DLog.i(TAG, "重试加载下一页报告");
         loadNextReportPage();
     }
 
     public void notifyAction(@NonNull String message) {
         JLog.i("BrvahDemoViewModel", message);
+        DLog.i(TAG, "转发 BRVAH 示例动作消息，message=" + message);
         dispatchMessage(message);
     }
 
@@ -222,9 +242,11 @@ public class BrvahDemoViewModel extends BaseViewModel {
                 hasMore,
                 errorMessage
         ));
+        DLog.d(TAG, "刷新报告分页 UI 状态，status=" + status + ", hasMore=" + hasMore + ", loaded=" + loadedReports.size());
     }
 
     private <T> List<T> valueOrEmpty(List<T> current) {
         return current == null ? new ArrayList<>() : current;
     }
 }
+

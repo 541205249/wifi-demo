@@ -9,6 +9,7 @@ import androidx.annotation.Nullable;
 import com.example.wifidemo.R;
 import com.example.wifidemo.databinding.ActivityDemoHomeBinding;
 import com.example.wifidemo.sample.brvah.ui.BrvahDemoActivity;
+import com.example.wifidemo.sample.log.ui.LogSettingsActivity;
 import com.wifi.lib.baseui.BaseConfirmDialog;
 import com.wifi.lib.mvvm.BaseMvvmActivity;
 
@@ -29,6 +30,9 @@ public class DemoHomeActivity extends BaseMvvmActivity<ActivityDemoHomeBinding, 
         binding.btnAddRecordFromActivity.setOnClickListener(v -> viewModel.addMockRecord());
         binding.btnOpenBrvahDemo.setOnClickListener(v ->
                 startActivity(new Intent(this, BrvahDemoActivity.class))
+        );
+        binding.btnOpenLogSettings.setOnClickListener(v ->
+                startActivity(new Intent(this, LogSettingsActivity.class))
         );
 
         if (savedInstanceState == null) {

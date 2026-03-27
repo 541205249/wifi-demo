@@ -64,9 +64,13 @@ public class JLogcatCollector {
             started = true;
         }
 
-        if (config.isMonitorCrashLog() && !crashMonitorRegistered) {
-            crashMonitorRegistered = true;
-            registerCrashMonitor();
+        if (config.isMonitorCrashLog()) {
+            if (!crashMonitorRegistered) {
+                crashMonitorRegistered = true;
+                registerCrashMonitor();
+            }
+        } else if (crashMonitorRegistered) {
+            unregisterCrashMonitor();
         }
     }
 
@@ -124,6 +128,12 @@ public class JLogcatCollector {
     public void stop() {
         flushSpilledLogs(true);
         savePersistentLogs();
+        synchronized (this) {
+            started = false;
+            if (crashMonitorRegistered) {
+                unregisterCrashMonitor();
+            }
+        }
     }
 
     @Nullable
@@ -143,6 +153,12 @@ public class JLogcatCollector {
                 System.exit(1);
             }
         });
+    }
+
+    private void unregisterCrashMonitor() {
+        Thread.setDefaultUncaughtExceptionHandler(defaultHandler);
+        defaultHandler = null;
+        crashMonitorRegistered = false;
     }
 
     private void saveCrashLog(@NonNull Throwable throwable) {

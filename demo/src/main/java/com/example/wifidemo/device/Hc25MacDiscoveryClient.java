@@ -2,6 +2,8 @@ package com.example.wifidemo.device;
 
 import android.text.TextUtils;
 
+import com.wifi.lib.log.DLog;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -15,6 +17,7 @@ import java.util.regex.Pattern;
  * 通过 HC-25 的 UDP SEARCH 能力查询模块 MAC。
  */
 public final class Hc25MacDiscoveryClient {
+    private static final String TAG = "Hc25MacDiscovery";
     public static final int DEFAULT_SEARCH_PORT = 54321;
     public static final String DEFAULT_SEARCH_KEYWORD = "HC-25";
 
@@ -32,14 +35,18 @@ public final class Hc25MacDiscoveryClient {
 
         try {
             InetAddress remoteAddress = InetAddress.getByName(remoteIp);
+            DLog.i(TAG, "开始查询模块 MAC，remoteIp=" + remoteIp);
             for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
                 String response = sendSearch(remoteAddress);
                 String macAddress = parseMacAddress(response);
                 if (!TextUtils.isEmpty(macAddress)) {
+                    DLog.i(TAG, "模块 MAC 查询成功，remoteIp=" + remoteIp + ", mac=" + macAddress + ", attempt=" + (attempt + 1));
                     return macAddress;
                 }
+                DLog.w(TAG, "模块 MAC 查询未命中，remoteIp=" + remoteIp + ", attempt=" + (attempt + 1));
             }
-        } catch (IOException ignored) {
+        } catch (IOException e) {
+            DLog.e(TAG, "模块 MAC 查询异常，remoteIp=" + remoteIp, e);
         }
         return null;
     }
@@ -51,13 +58,17 @@ public final class Hc25MacDiscoveryClient {
 
         Matcher matcher = MAC_PATTERN.matcher(response);
         if (matcher.find()) {
-            return DeviceHistoryStore.normalizeMacAddress(matcher.group(1));
+            String macAddress = DeviceHistoryStore.normalizeMacAddress(matcher.group(1));
+            DLog.d(TAG, "从 SEARCH 响应中解析到 MAC=" + macAddress);
+            return macAddress;
         }
 
         String compactResponse = response.replaceAll("\\s+", "");
         matcher = MAC_PATTERN.matcher(compactResponse);
         if (matcher.find()) {
-            return DeviceHistoryStore.normalizeMacAddress(matcher.group(1));
+            String macAddress = DeviceHistoryStore.normalizeMacAddress(matcher.group(1));
+            DLog.d(TAG, "从紧凑 SEARCH 响应中解析到 MAC=" + macAddress);
+            return macAddress;
         }
         return null;
     }
@@ -89,9 +100,11 @@ public final class Hc25MacDiscoveryClient {
                         ).trim();
                     }
                 } catch (SocketTimeoutException e) {
+                    DLog.w(TAG, "等待 SEARCH 响应超时，remoteIp=" + remoteAddress.getHostAddress());
                     return null;
                 }
             }
         }
     }
 }
+

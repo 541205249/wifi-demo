@@ -8,11 +8,14 @@ import androidx.annotation.Nullable;
 
 import com.wifi.lib.log.logcat.JLogcatCollector;
 
+import java.util.concurrent.CopyOnWriteArrayList;
+
 public class JLog {
     private static volatile JLog instance;
     private static String defaultTag = "JLog";
 
     private final JLogcatCollector logcatCollector = new JLogcatCollector();
+    private final CopyOnWriteArrayList<JLogObserver> observers = new CopyOnWriteArrayList<>();
     private JLogConfig logConfig;
 
     public static JLog get() {
@@ -28,6 +31,9 @@ public class JLog {
 
     public static void init(@NonNull JLogConfig logConfig) {
         JLog jLog = get();
+        if (jLog.logConfig != null) {
+            jLog.logcatCollector.stop();
+        }
         jLog.logConfig = logConfig;
         if (!TextUtils.isEmpty(logConfig.getLogTag())) {
             defaultTag = logConfig.getLogTag();
@@ -53,6 +59,14 @@ public class JLog {
 
     public static void saveLogsToFile() {
         get().logcatCollector.saveLogsToFile();
+    }
+
+    public static void addObserver(@NonNull JLogObserver observer) {
+        get().observers.addIfAbsent(observer);
+    }
+
+    public static void removeObserver(@NonNull JLogObserver observer) {
+        get().observers.remove(observer);
     }
 
     public static void d(String message) {
@@ -114,6 +128,7 @@ public class JLog {
     private static void log(int priority, String tag, String message, Throwable throwable) {
         String safeTag = TextUtils.isEmpty(tag) ? defaultTag : tag;
         String safeMessage = message == null ? "" : message;
+        JLog jLog = get();
 
         switch (priority) {
             case Log.DEBUG:
@@ -133,8 +148,22 @@ public class JLog {
                 break;
         }
 
-        if (get().logConfig != null) {
-            get().logcatCollector.record(priority, safeTag, safeMessage, throwable);
+        if (jLog.logConfig != null) {
+            jLog.logcatCollector.record(priority, safeTag, safeMessage, throwable);
+        }
+        jLog.dispatch(new JLogEntry(
+                System.currentTimeMillis(),
+                priority,
+                safeTag,
+                safeMessage,
+                throwable,
+                Thread.currentThread().getName()
+        ));
+    }
+
+    private void dispatch(@NonNull JLogEntry entry) {
+        for (JLogObserver observer : observers) {
+            observer.onLog(entry);
         }
     }
 }

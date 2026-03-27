@@ -9,6 +9,7 @@ import com.example.wifidemo.clinic.model.ReportRecord;
 import com.example.wifidemo.clinic.model.VisionChart;
 import com.example.wifidemo.clinic.model.VisualFunctionMetric;
 import com.example.wifidemo.sample.brvah.model.BrvahWorkflowItem;
+import com.wifi.lib.log.DLog;
 import com.wifi.lib.mvvm.BaseRepository;
 
 import java.text.SimpleDateFormat;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class BrvahDemoRepository extends BaseRepository {
+    private static final String TAG = "BrvahDemoRepo";
     private static final int REPORT_PAGE_SIZE = 4;
 
     public List<KnownDeviceSummary> createKnownDevices() {
@@ -28,6 +30,7 @@ public class BrvahDemoRepository extends BaseRepository {
         devices.add(new KnownDeviceSummary("98:DA:F0:31:2C:20", "雾视模块", "192.168.1.52", now - 41 * 60_000L, false, 47, 14));
         devices.add(new KnownDeviceSummary("98:DA:F0:31:2C:21", "近用补光模块", "192.168.1.63", now - 2 * 60 * 60_000L, false, 31, 11));
         devices.add(new KnownDeviceSummary("98:DA:F0:31:2C:22", "备用测试终端", "192.168.1.75", now - 26 * 60_000L, true, 56, 18));
+        DLog.d(TAG, "构建已知模块示例数据，count=" + devices.size());
         return devices;
     }
 
@@ -38,6 +41,7 @@ public class BrvahDemoRepository extends BaseRepository {
         charts.add(new VisionChart("chart-color", "偏振字母表", "双眼视功能", "适用于双眼平衡与主视眼辅助判断。", R.drawable.chart_polar_letters));
         charts.add(new VisionChart("chart-fixation", "注视网格", "黄斑注视", "适合筛查注视稳定性与中心暗点反馈。", R.drawable.chart_fixation_grid));
         charts.add(new VisionChart("chart-child", "儿童快速表", "单行视标", "适合儿童快速验光与复查场景。", R.drawable.chart_plate_5));
+        DLog.d(TAG, "构建视标卡片示例数据，count=" + charts.size());
         return charts;
     }
 
@@ -78,6 +82,7 @@ public class BrvahDemoRepository extends BaseRepository {
                 "可在此节点挂接 Worth 四点、偏振融合或集合近点。",
                 "可操作"
         ));
+        DLog.d(TAG, "构建工作流示例数据，count=" + items.size());
         return items;
     }
 
@@ -114,6 +119,7 @@ public class BrvahDemoRepository extends BaseRepository {
         binocular.getSteps().add(createStep("step-vf-2", "融合范围测量", "记录近距/远距融合储备。"));
         binocular.getSteps().add(createStep("step-vf-3", "集合近点", "评估调节与集合协调。"));
         programs.add(binocular);
+        DLog.d(TAG, "构建验光流程示例数据，count=" + programs.size());
         return programs;
     }
 
@@ -129,15 +135,18 @@ public class BrvahDemoRepository extends BaseRepository {
         reports.add(createReport("report-007", "刘清", "双眼视功能评估", now - 48 * 60 * 60_000L, "集合近点偏远", "建议纳入训练方案"));
         reports.add(createReport("report-008", "何妍", "标准成人验光", now - 60 * 60 * 60_000L, "双眼矫正 1.0", "R:-1.50/-0.25x5  L:-1.25/-0.50x178"));
         reports.add(createReport("report-009", "杨帆", "标准成人验光", now - 72 * 60 * 60_000L, "新增近用附加需求", "ADD +1.25"));
+        DLog.d(TAG, "构建报告分页示例数据，count=" + reports.size());
         return reports;
     }
 
     public List<ReportRecord> getReportPage(List<ReportRecord> allReports, int pageIndex) {
         int fromIndex = pageIndex * REPORT_PAGE_SIZE;
         if (fromIndex >= allReports.size()) {
+            DLog.w(TAG, "请求报告分页超出范围，pageIndex=" + pageIndex);
             return new ArrayList<>();
         }
         int toIndex = Math.min(fromIndex + REPORT_PAGE_SIZE, allReports.size());
+        DLog.d(TAG, "切分报告分页，pageIndex=" + pageIndex + ", from=" + fromIndex + ", to=" + toIndex);
         return new ArrayList<>(allReports.subList(fromIndex, toIndex));
     }
 
@@ -193,3 +202,4 @@ public class BrvahDemoRepository extends BaseRepository {
         return record;
     }
 }
+

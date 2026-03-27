@@ -10,6 +10,7 @@ import com.wifi.lib.db.TrackedDeviceEntity;
 import com.wifi.lib.db.TrackedDeviceEntityDao;
 import com.wifi.lib.db.WifiDeviceDbInitiator;
 import com.wifi.lib.db.WifiDeviceDbSessionProvider;
+import com.wifi.lib.log.DLog;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -22,6 +23,7 @@ import java.util.Locale;
  * 当前底层持久化使用 greenDAO。
  */
 public class DeviceHistoryStore {
+    private static final String TAG = "DeviceHistoryStore";
     public static final String CATEGORY_COMMUNICATION = "communication";
     public static final String CATEGORY_CONNECTION = "connection";
     public static final String ACTION_CONNECTED = "connected";
@@ -213,6 +215,7 @@ public class DeviceHistoryStore {
         }
         trackedDeviceDao = daoSession.getTrackedDeviceEntityDao();
         deviceLogDao = daoSession.getDeviceLogEntityDao();
+        trace("历史仓库初始化完成，DAO 已就绪");
     }
 
     public static DeviceHistoryStore getInstance(Context context) {
@@ -266,12 +269,15 @@ public class DeviceHistoryStore {
 
     public synchronized void markAllDevicesOffline() {
         List<TrackedDeviceEntity> devices = trackedDeviceDao.loadAll();
+        int updatedCount = 0;
         for (TrackedDeviceEntity device : devices) {
             if (device.getCurrentlyConnected()) {
                 device.setCurrentlyConnected(false);
                 trackedDeviceDao.update(device);
+                updatedCount++;
             }
         }
+        trace("批量重置模块离线状态完成，updated=" + updatedCount);
     }
 
     public synchronized void recordConnection(
@@ -325,6 +331,9 @@ public class DeviceHistoryStore {
         );
         deviceLogDao.insert(log);
         trimDeviceLogs(deviceId);
+        trace("连接记录已入库，deviceId=" + deviceId
+                + ", connected=" + connected
+                + ", remote=" + remoteIp + ":" + remotePort);
     }
 
     public synchronized void recordCommunication(
@@ -380,6 +389,9 @@ public class DeviceHistoryStore {
         );
         deviceLogDao.insert(log);
         trimDeviceLogs(deviceId);
+        trace("通信记录已入库，deviceId=" + deviceId
+                + ", action=" + action
+                + ", length=" + (message == null ? 0 : message.length()));
     }
 
     public synchronized List<DeviceSummary> getKnownDevices() {
@@ -390,6 +402,7 @@ public class DeviceHistoryStore {
         for (TrackedDeviceEntity device : devices) {
             result.add(toSummary(device));
         }
+        trace("查询已建档模块列表完成，count=" + result.size());
         return result;
     }
 
@@ -436,6 +449,7 @@ public class DeviceHistoryStore {
                     safeInt(log.getLocalPort())
             ));
         }
+        trace("查询模块日志完成，deviceId=" + deviceId + ", filter=" + filter + ", count=" + result.size());
         return result;
     }
 
@@ -497,6 +511,9 @@ public class DeviceHistoryStore {
         for (int index = 0; index < overflow; index++) {
             deviceLogDao.delete(allLogs.get(index));
         }
+        if (overflow > 0) {
+            trace("模块日志已裁剪，deviceId=" + deviceId + ", removed=" + overflow);
+        }
     }
 
     private DeviceSummary toSummary(TrackedDeviceEntity device) {
@@ -556,4 +573,9 @@ public class DeviceHistoryStore {
         }
         return "未识别 MAC (" + lastKnownIp + ")";
     }
+
+    private void trace(String message) {
+        DLog.i(TAG, message);
+    }
 }
+

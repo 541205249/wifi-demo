@@ -19,6 +19,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 
+import com.wifi.lib.log.DLog;
 import com.wifi.lib.mvvm.BaseMvvmActivity;
 import com.wifi.optometry.R;
 import com.wifi.optometry.communication.ServerConstance;
@@ -43,6 +44,7 @@ import java.util.List;
 
 public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicViewModel> implements DeviceServiceGateway {
     private static final int NOTIFICATION_PERMISSION_REQUEST_CODE = 1101;
+    private static final String TAG = "MainActivity";
 
     private ClinicViewModel clinicViewModel;
     private TcpServerService tcpServerService;
@@ -55,6 +57,7 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
             TcpServerService.TcpServerBinder binder = (TcpServerService.TcpServerBinder) service;
             tcpServerService = binder.getService();
             isServiceBound = true;
+            trace("TCP 服务绑定完成，准备同步本地地址和回调");
             if (!TextUtils.isEmpty(localIpAddress)) {
                 tcpServerService.setLocalIpAddress(localIpAddress);
             }
@@ -67,6 +70,7 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
         public void onServiceDisconnected(ComponentName name) {
             isServiceBound = false;
             tcpServerService = null;
+            trace("TCP 服务连接断开，触发界面状态刷新");
             clinicViewModel.refreshDeviceState();
             clinicViewModel.appendDeviceConsole("WiFi 通信服务已断开");
         }
@@ -84,6 +88,7 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
         checkNotificationPermission();
         requestBatteryOptimizationWhitelist();
         localIpAddress = resolveLocalIpAddress();
+        trace("主界面初始化，本机 IP=" + (TextUtils.isEmpty(localIpAddress) ? "未获取" : localIpAddress));
 
         clinicViewModel.setDeviceServiceGateway(this);
         if (savedInstanceState == null) {
@@ -161,6 +166,7 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
     }
 
     private void startAndBindService() {
+        trace("请求启动并绑定 TCP 前台服务");
         Intent serviceIntent = new Intent(this, TcpServerService.class);
         startForegroundService(serviceIntent);
         bindService(serviceIntent, serviceConnection, BIND_AUTO_CREATE);
@@ -173,30 +179,35 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
         tcpServerService.setOnMessageListener(new TcpServerService.OnMessageListener() {
             @Override
             public void onMessageReceived(String clientId, String message) {
+                trace("服务回调收到模块消息，clientId=" + clientId + ", 长度=" + (message == null ? 0 : message.length()));
                 clinicViewModel.appendDeviceConsole("收到 " + clientId + " 的消息: " + message);
                 clinicViewModel.refreshDeviceState();
             }
 
             @Override
             public void onClientConnected(String clientId) {
+                trace("服务回调模块接入，clientId=" + clientId);
                 clinicViewModel.appendDeviceConsole("模块已连接: " + clientId);
                 clinicViewModel.refreshDeviceState();
             }
 
             @Override
             public void onClientIdentityResolved(String clientId, String macAddress) {
+                trace("服务回调模块身份已解析，clientId=" + clientId + ", mac=" + macAddress);
                 clinicViewModel.appendDeviceConsole("已识别模块身份: " + macAddress + " [" + clientId + "]");
                 clinicViewModel.refreshDeviceState();
             }
 
             @Override
             public void onClientDisconnected(String clientId) {
+                trace("服务回调模块断开，clientId=" + clientId);
                 clinicViewModel.appendDeviceConsole("模块已断开: " + clientId);
                 clinicViewModel.refreshDeviceState();
             }
 
             @Override
             public void onError(String error) {
+                trace("服务回调出现错误: " + error);
                 clinicViewModel.appendDeviceConsole("通信错误: " + error);
                 clinicViewModel.refreshDeviceState();
             }
@@ -206,6 +217,8 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
                 if (!TextUtils.isEmpty(ipAddress)) {
                     localIpAddress = ipAddress;
                 }
+                trace("服务回调监听已启动，地址=" + (TextUtils.isEmpty(ipAddress) ? getLocalIpAddress() : ipAddress)
+                        + ":" + ServerConstance.SERVER_PORT);
                 clinicViewModel.appendDeviceConsole("监听服务运行中，地址: "
                         + (TextUtils.isEmpty(getLocalIpAddress()) ? "未获取" : getLocalIpAddress())
                         + ":" + ServerConstance.SERVER_PORT);
@@ -287,6 +300,7 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
     public List<ConnectedDeviceInfo> getConnectedDevices() {
         List<ConnectedDeviceInfo> result = new ArrayList<>();
         if (tcpServerService == null) {
+            trace("查询在线模块时服务尚未就绪");
             return result;
         }
         DeviceManager.DeviceConnection[] connections = tcpServerService.getConnectedDevices();
@@ -300,11 +314,13 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
                     connection.getConnectedAt()
             ));
         }
+        trace("聚合在线模块列表完成，数量=" + result.size());
         return result;
     }
 
     @Override
     public void startServer() {
+        trace("界面层请求启动监听服务");
         Intent serviceIntent = new Intent(this, TcpServerService.class);
         startForegroundService(serviceIntent);
         if (!isServiceBound) {
@@ -315,6 +331,7 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
     @Override
     public void stopServer() {
         if (tcpServerService != null) {
+            trace("界面层请求停止监听服务");
             tcpServerService.stopServer();
         }
     }
@@ -322,6 +339,7 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
     @Override
     public void broadcastMessage(String message) {
         if (tcpServerService != null) {
+            trace("界面层请求广播消息，长度=" + (message == null ? 0 : message.length()));
             tcpServerService.broadcastMessage(message);
         }
     }
@@ -329,7 +347,13 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
     @Override
     public void sendMessageToClient(String clientId, String message) {
         if (tcpServerService != null) {
+            trace("界面层请求定向发送，clientId=" + clientId + ", 长度=" + (message == null ? 0 : message.length()));
             tcpServerService.sendMessageToClient(clientId, message);
         }
     }
+
+    private void trace(String message) {
+        DLog.i(TAG, message);
+    }
 }
+

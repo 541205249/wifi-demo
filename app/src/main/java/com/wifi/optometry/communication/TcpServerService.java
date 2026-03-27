@@ -16,6 +16,7 @@ import android.text.TextUtils;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
+import com.wifi.lib.log.DLog;
 import com.wifi.lib.log.JLog;
 import com.wifi.optometry.communication.device.DeviceHistoryStore;
 import com.wifi.optometry.communication.device.DeviceManager;
@@ -155,6 +156,7 @@ public class TcpServerService extends Service {
     public void onCreate() {
         super.onCreate();
         JLog.i(TAG, "Service created");
+        trace("服务已创建，准备恢复数据库状态和后台保活");
         mainHandler = new Handler(Looper.getMainLooper());
         deviceHistoryStore = DeviceHistoryStore.getInstance(this);
         deviceHistoryStore.markAllDevicesOffline();
@@ -166,6 +168,7 @@ public class TcpServerService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         JLog.i(TAG, "Service started");
+        trace("收到启动命令，开始拉起监听");
         startForeground(NOTIFICATION_ID, createNotification("TCP 服务器正在启动..."));
         startServer();
         return START_STICKY;
@@ -181,6 +184,7 @@ public class TcpServerService extends Service {
     public void onDestroy() {
         super.onDestroy();
         JLog.i(TAG, "Service destroyed");
+        trace("服务销毁，开始释放连接和锁资源");
         stopServer();
         releaseWakeLocks();
         destroyDeviceManager();
@@ -194,6 +198,7 @@ public class TcpServerService extends Service {
     public void setLocalIpAddress(String ipAddress) {
         this.localIpAddress = ipAddress;
         JLog.i(TAG, "Set local IP address from Activity: " + ipAddress);
+        trace("同步本机监听地址，ip=" + ipAddress);
     }
 
     public boolean isServerRunning() {
@@ -229,6 +234,7 @@ public class TcpServerService extends Service {
             return;
         }
 
+        trace("准备向模块发送消息，clientId=" + clientId + ", length=" + (message == null ? 0 : message.length()));
         DeviceManager.DeviceConnection device = deviceManager.sendMessageToDevice(clientId, message);
         if (device != null) {
             recordCommunication(device, DeviceHistoryStore.ACTION_SENT, message);
@@ -238,9 +244,11 @@ public class TcpServerService extends Service {
     public void broadcastMessage(String message) {
         if (deviceManager == null) {
             JLog.w(TAG, "DeviceManager not initialized, cannot broadcast");
+            traceWarn("广播失败，DeviceManager 尚未初始化");
             return;
         }
 
+        trace("准备广播消息，length=" + (message == null ? 0 : message.length()));
         List<DeviceManager.DeviceConnection> targets = deviceManager.broadcastMessage(message);
         for (DeviceManager.DeviceConnection target : targets) {
             recordCommunication(target, DeviceHistoryStore.ACTION_SENT, message);
@@ -257,6 +265,7 @@ public class TcpServerService extends Service {
         }
 
         JLog.i(TAG, "Stopping server...");
+        trace("开始停止监听服务并关闭所有连接");
         isRunning = false;
 
         if (serverSocket != null) {
@@ -280,11 +289,13 @@ public class TcpServerService extends Service {
 
         updateNotification("TCP 服务器已停止");
         JLog.i(TAG, "Server stopped");
+        trace("监听服务已停止");
     }
 
     private void startServer() {
         if (isRunning) {
             JLog.w(TAG, "Server already running");
+            traceWarn("忽略重复启动请求，服务已在运行");
             return;
         }
 
@@ -302,6 +313,7 @@ public class TcpServerService extends Service {
             }
 
                 JLog.i(TAG, "Server started on port " + ServerConstance.SERVER_PORT + ", IP: " + localIpAddress);
+            trace("监听已启动，address=" + localIpAddress + ":" + ServerConstance.SERVER_PORT);
 
             if (messageListener != null) {
                 mainHandler.post(() -> messageListener.onServerStarted(localIpAddress));
@@ -316,9 +328,11 @@ public class TcpServerService extends Service {
                         Socket clientSocket = serverSocket.accept();
                         String remoteIp = clientSocket.getInetAddress().getHostAddress();
                     JLog.i(TAG, "Client connected: " + remoteIp);
+                        trace("接受到新的模块连接，remoteIp=" + remoteIp + ", remotePort=" + clientSocket.getPort());
 
                         if (!isRunning || deviceManager == null) {
                         JLog.w(TAG, "Server is stopping, rejecting new connection: " + remoteIp);
+                            traceWarn("服务停止过程中拒绝新连接，remoteIp=" + remoteIp);
                             try {
                                 clientSocket.close();
                             } catch (IOException e) {
@@ -338,6 +352,7 @@ public class TcpServerService extends Service {
                     } catch (IOException e) {
                         if (isRunning) {
                     JLog.e(TAG, "Error accepting client", e);
+                            traceError("接收客户端连接失败", e);
                             if (messageListener != null) {
                                 mainHandler.post(() ->
                                         messageListener.onError("接受客户端失败：" + e.getMessage()));
@@ -350,6 +365,7 @@ public class TcpServerService extends Service {
             });
         } catch (IOException e) {
                 JLog.e(TAG, "Failed to start server", e);
+                traceError("监听启动失败", e);
             isRunning = false;
             if (messageListener != null) {
                 mainHandler.post(() -> messageListener.onError("启动服务器失败：" + e.getMessage()));
@@ -363,6 +379,8 @@ public class TcpServerService extends Service {
             @Override
             public void onDeviceConnected(DeviceManager.DeviceConnection device) {
         JLog.i(TAG, "Device connected: " + device.getInlineLabel());
+                trace("模块接入完成，deviceId=" + device.getDeviceId()
+                        + ", remote=" + device.getRemoteIp() + ":" + device.getRemotePort());
                 if (heartbeatManager != null) {
                     heartbeatManager.onClientConnected(device.getDeviceId());
                 }
@@ -376,6 +394,7 @@ public class TcpServerService extends Service {
             public void onDeviceDisconnected(DeviceManager.DeviceConnection device) {
         JLog.i(TAG, "========================================");
         JLog.i(TAG, "Device disconnected: " + device.getInlineLabel());
+                trace("模块断开连接，deviceId=" + device.getDeviceId());
                 if (heartbeatManager != null) {
                     heartbeatManager.onClientDisconnected(device.getDeviceId());
                 }
@@ -392,6 +411,8 @@ public class TcpServerService extends Service {
                 if (heartbeatManager != null) {
                     heartbeatManager.onMessageReceived(device.getDeviceId());
                 }
+                trace("收到模块消息，deviceId=" + device.getDeviceId()
+                        + ", length=" + (message == null ? 0 : message.length()));
                 recordCommunication(device, DeviceHistoryStore.ACTION_RECEIVED, message);
 
                 if (messageListener != null) {
@@ -433,6 +454,7 @@ public class TcpServerService extends Service {
         String localIp = resolveLocalIpAddress();
         String archiveDeviceId = device.getArchiveDeviceId();
         if (!TextUtils.isEmpty(archiveDeviceId)) {
+            trace("连接事件直接归档，deviceId=" + archiveDeviceId + ", connected=" + connected);
             deviceHistoryStore.recordConnectionAt(
                     archiveDeviceId,
                     archiveDeviceId,
@@ -446,6 +468,7 @@ public class TcpServerService extends Service {
             return;
         }
         if (!isRunning) {
+            traceWarn("服务未运行，忽略连接事件缓存，sessionId=" + device.getDeviceId());
             return;
         }
 
@@ -462,6 +485,7 @@ public class TcpServerService extends Service {
         if (!connected) {
             markSessionDisconnected(device.getDeviceId());
         }
+        trace("连接事件已缓存，sessionId=" + device.getDeviceId() + ", connected=" + connected);
         requestMacResolution(device);
     }
 
@@ -474,6 +498,7 @@ public class TcpServerService extends Service {
         String localIp = resolveLocalIpAddress();
         String archiveDeviceId = device.getArchiveDeviceId();
         if (!TextUtils.isEmpty(archiveDeviceId)) {
+            trace("通信事件直接归档，deviceId=" + archiveDeviceId + ", action=" + action);
             deviceHistoryStore.recordCommunicationAt(
                     archiveDeviceId,
                     archiveDeviceId,
@@ -488,6 +513,7 @@ public class TcpServerService extends Service {
             return;
         }
         if (!isRunning) {
+            traceWarn("服务未运行，忽略通信事件缓存，sessionId=" + device.getDeviceId());
             return;
         }
 
@@ -501,6 +527,7 @@ public class TcpServerService extends Service {
                 localIp,
                 ServerConstance.SERVER_PORT
         ));
+        trace("通信事件已缓存，sessionId=" + device.getDeviceId() + ", action=" + action);
         requestMacResolution(device);
     }
 
@@ -532,10 +559,12 @@ public class TcpServerService extends Service {
             if (state.isDisconnected() && !state.isDiscoveryInProgress()) {
                 pendingArchiveStates.remove(device.getDeviceId(), state);
             }
+            traceWarn("跳过 MAC 解析调度，sessionId=" + device.getDeviceId());
             return;
         }
 
         try {
+            trace("开始调度 MAC 解析，sessionId=" + device.getDeviceId() + ", remoteIp=" + device.getRemoteIp());
             executorService.execute(() -> {
                 String macAddress = macDiscoveryClient.queryMacAddress(device.getRemoteIp());
                 if (!TextUtils.isEmpty(macAddress)) {
@@ -546,6 +575,7 @@ public class TcpServerService extends Service {
             });
         } catch (Exception e) {
             JLog.e(TAG, "Failed to schedule MAC discovery for " + device.getDeviceId(), e);
+            traceError("调度 MAC 解析失败，sessionId=" + device.getDeviceId(), e);
             handleMacResolutionFailed(device.getDeviceId());
         }
     }
@@ -558,6 +588,7 @@ public class TcpServerService extends Service {
         }
 
         JLog.i(TAG, "Resolved device MAC [" + normalizedMac + "] for session [" + device.getDeviceId() + "]");
+        trace("MAC 解析成功，sessionId=" + device.getDeviceId() + ", mac=" + normalizedMac);
         device.updateMacAddress(normalizedMac);
 
         PendingArchiveState state = pendingArchiveStates.remove(device.getDeviceId());
@@ -582,6 +613,7 @@ public class TcpServerService extends Service {
         state.finishDiscovery();
         if (state.isDisconnected()) {
             JLog.w(TAG, "MAC resolution failed for disconnected session: " + sessionId);
+            traceWarn("MAC 解析失败且会话已断开，sessionId=" + sessionId);
             pendingArchiveStates.remove(sessionId, state);
         }
     }
@@ -592,6 +624,7 @@ public class TcpServerService extends Service {
         }
 
         if (DeviceHistoryStore.CATEGORY_CONNECTION.equals(logRecord.category)) {
+            trace("回放缓存连接日志，deviceId=" + archiveDeviceId + ", action=" + logRecord.action);
             deviceHistoryStore.recordConnectionAt(
                     archiveDeviceId,
                     archiveDeviceId,
@@ -605,6 +638,7 @@ public class TcpServerService extends Service {
             return;
         }
 
+        trace("回放缓存通信日志，deviceId=" + archiveDeviceId + ", action=" + logRecord.action);
         deviceHistoryStore.recordCommunicationAt(
                 archiveDeviceId,
                 archiveDeviceId,
@@ -723,4 +757,17 @@ public class TcpServerService extends Service {
             manager.notify(NOTIFICATION_ID, createNotification(content));
         }
     }
+
+    private void trace(String message) {
+        DLog.i(TAG, message);
+    }
+
+    private void traceWarn(String message) {
+        DLog.w(TAG, message);
+    }
+
+    private void traceError(String message, Throwable throwable) {
+        DLog.e(TAG, message, throwable);
+    }
 }
+

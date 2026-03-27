@@ -1,5 +1,6 @@
 package com.wifi.optometry.domain;
 
+import com.wifi.lib.log.DLog;
 import com.wifi.optometry.domain.model.ExamProgram;
 import com.wifi.optometry.domain.model.ExamSession;
 import com.wifi.optometry.domain.model.ExamStep;
@@ -8,17 +9,24 @@ import com.wifi.optometry.domain.model.LensMeasurement;
 import java.util.List;
 
 public final class ExamWorkflowEngine {
+    private static final String TAG = "ExamWorkflow";
+
     private ExamWorkflowEngine() {
     }
 
     public static ExamStep getCurrentStep(ExamSession session, List<ExamProgram> programs) {
         ExamProgram program = findProgram(session.getCurrentProgramId(), programs);
         if (program == null || program.getSteps().isEmpty()) {
+            DLog.w(TAG, "未找到当前流程步骤，programId=" + session.getCurrentProgramId());
             return null;
         }
         int index = Math.max(0, Math.min(session.getCurrentStepIndex(), program.getSteps().size() - 1));
         session.setCurrentStepIndex(index);
-        return program.getSteps().get(index);
+        ExamStep step = program.getSteps().get(index);
+        DLog.d(TAG, "解析当前步骤完成，programId=" + program.getId()
+                + ", index=" + index
+                + ", stepId=" + step.getId());
+        return step;
     }
 
     public static int getProgressPercent(ExamSession session, List<ExamProgram> programs) {
@@ -32,6 +40,7 @@ public final class ExamWorkflowEngine {
     public static void moveNext(ExamSession session, List<ExamProgram> programs) {
         ExamProgram program = findProgram(session.getCurrentProgramId(), programs);
         if (program == null || program.getSteps().isEmpty()) {
+            DLog.w(TAG, "下一步流转失败，未找到流程 programId=" + session.getCurrentProgramId());
             return;
         }
 
@@ -43,11 +52,13 @@ public final class ExamWorkflowEngine {
             targetIndex = program.getSteps().size() - 1;
         }
         session.setCurrentStepIndex(targetIndex);
+        DLog.d(TAG, "流程前进完成，programId=" + program.getId() + ", index=" + targetIndex);
     }
 
     public static void movePrevious(ExamSession session, List<ExamProgram> programs) {
         ExamProgram program = findProgram(session.getCurrentProgramId(), programs);
         if (program == null || program.getSteps().isEmpty()) {
+            DLog.w(TAG, "上一步流转失败，未找到流程 programId=" + session.getCurrentProgramId());
             return;
         }
 
@@ -56,6 +67,7 @@ public final class ExamWorkflowEngine {
             targetIndex--;
         }
         session.setCurrentStepIndex(Math.max(0, targetIndex));
+        DLog.d(TAG, "流程回退完成，programId=" + program.getId() + ", index=" + session.getCurrentStepIndex());
     }
 
     private static boolean shouldSkip(ExamSession session, ExamStep step) {
@@ -67,20 +79,35 @@ public final class ExamWorkflowEngine {
             return false;
         }
         double target = step.getSkipThreshold();
+        boolean shouldSkip;
         switch (step.getSkipComparator()) {
             case EQ:
-                return currentValue == target;
+                shouldSkip = currentValue == target;
+                break;
             case GT:
-                return currentValue > target;
+                shouldSkip = currentValue > target;
+                break;
             case GTE:
-                return currentValue >= target;
+                shouldSkip = currentValue >= target;
+                break;
             case LT:
-                return currentValue < target;
+                shouldSkip = currentValue < target;
+                break;
             case LTE:
-                return currentValue <= target;
+                shouldSkip = currentValue <= target;
+                break;
             default:
-                return false;
+                shouldSkip = false;
+                break;
         }
+        if (shouldSkip) {
+            DLog.d(TAG, "命中跳步条件，stepId=" + step.getId()
+                    + ", field=" + step.getSkipField()
+                    + ", current=" + currentValue
+                    + ", comparator=" + step.getSkipComparator()
+                    + ", threshold=" + target);
+        }
+        return shouldSkip;
     }
 
     private static double resolveField(ExamSession session, ExamStep step) {
@@ -136,3 +163,4 @@ public final class ExamWorkflowEngine {
         return null;
     }
 }
+
