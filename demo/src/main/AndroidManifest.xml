@@ -50,7 +50,7 @@
             android:parentActivityName=".sample.ui.DemoHomeActivity" />
 
         <activity
-            android:name=".sample.command.ui.CommandSettingsActivity"
+            android:name=".sample.command.CommandSettingsActivity"
             android:exported="false"
             android:parentActivityName=".sample.ui.DemoHomeActivity" />
 

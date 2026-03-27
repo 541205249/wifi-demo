@@ -12,13 +12,14 @@ import androidx.lifecycle.MutableLiveData;
 import com.wifi.lib.command.CommandCatalog;
 import com.wifi.lib.command.CommandDefinition;
 import com.wifi.lib.command.CommandEngine;
+import com.wifi.lib.command.CommandSettingsRepository;
 import com.wifi.lib.command.CommandTable;
 import com.wifi.lib.command.InboundCommand;
 import com.wifi.lib.command.OutboundCommand;
+import com.wifi.lib.command.profile.OptometryCommandCatalogs;
+import com.wifi.lib.command.profile.OptometryCommandProfile;
 import com.wifi.lib.log.DLog;
 import com.wifi.lib.mvvm.BaseViewModel;
-import com.wifi.optometry.communication.command.CommandSettingsRepository;
-import com.wifi.optometry.communication.command.OptometryCommandCatalogs;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -44,7 +45,7 @@ public class CommandSettingsViewModel extends BaseViewModel {
 
     public CommandSettingsViewModel(@NonNull Application application) {
         super(application);
-        repository = CommandSettingsRepository.getInstance(application);
+        repository = CommandSettingsRepository.getInstance(application, OptometryCommandProfile.getInstance());
         commandEngine = repository.getCommandEngine();
         registerInboundHandlers();
         renderSnapshot(repository.snapshot());

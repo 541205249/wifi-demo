@@ -1,4 +1,4 @@
-package com.wifi.optometry.communication.command;
+package com.wifi.lib.command.profile;
 
 import androidx.annotation.NonNull;
 
@@ -6,6 +6,12 @@ import com.wifi.lib.command.CommandCatalog;
 import com.wifi.lib.command.CommandDirection;
 import com.wifi.lib.command.CommandReservation;
 
+/**
+ * 验光业务的预留编码目录。
+ * <p>
+ * 这里定义的是 App 侧固定使用的“业务编号”，不是设备真实协议字符串。
+ * 真实命令内容仍然由运行时加载的 CSV 编码表提供映射。
+ */
 public final class OptometryCommandCatalogs {
     public static final String CODE_QUERY_MODULE_INFO = "100101";
     public static final String CODE_REPORT_MODULE_INFO = "100102";

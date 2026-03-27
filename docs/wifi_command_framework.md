@@ -2,7 +2,7 @@
 
 ## 1. 目标
 
-这套框架放在 `lib` 模块中，解决的是下面这件事：
+这套框架放在 `lib` 模块中，`app` 和 `demo` 共用同一套命令基础层，解决的是下面这件事：
 
 - App 先按业务预留固定的 6 位编号。
 - UI、业务流程、发送入口全部只依赖“编号”，不依赖真实命令字符串。
@@ -149,7 +149,14 @@ CSV 表头建议如下：
 
 ### 第一步：在 App 中固定预留编号
 
-建议每个业务模块建一份固定编号类或目录，例如：
+建议每个业务模块在 `lib` 中维护一份固定编号目录，例如当前的：
+
+- `lib/src/main/java/com/wifi/lib/command/profile/OptometryCommandCatalogs.java`
+- `lib/src/main/java/com/wifi/lib/command/profile/OptometryCommandProfile.java`
+
+固定编号目录只负责“业务编号预留”，不负责保存真实命令字符串。真实命令仍然来自 CSV。
+
+例如：
 
 ```java
 CommandCatalog catalog = new CommandCatalog.Builder()
@@ -265,14 +272,15 @@ List<String> groups = inboundCommand.getRegexGroups();
 - 文档回传后，App 在命令设置页加载并校验。
 - 如果校验发现缺号、错号、方向不一致，直接提示，不继续上线使用。
 
-## 9. 已附带模板
+## 9. 默认编码表与模板
 
 模板文件已放到：
 
 - `docs/templates/command_table_template.csv`
-- `demo/src/main/res/raw/command_table_demo.csv`
+- `lib/src/main/res/raw/command_table_optometry_default.csv`
 
 其中：
 
 - `docs/templates/command_table_template.csv` 适合直接复制后发给设备端填写
-- `demo/src/main/res/raw/command_table_demo.csv` 是 demo 内置示例，命令设置页首次进入时会自动加载，里面的编号已经和测试按钮一一对应
+- `lib/src/main/res/raw/command_table_optometry_default.csv` 是共享内置默认编码表，`app` 和 `demo` 的命令设置页首次进入时都会从这里加载
+- `app` 和 `demo` 不再各自维护一份重复仓库、重复编号目录、重复默认 CSV，统一依赖 `lib` 中的 `CommandSettingsRepository + CommandProfile`

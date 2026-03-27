@@ -1,4 +1,4 @@
-package com.example.wifidemo.sample.command.data;
+package com.wifi.lib.command;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -8,28 +8,26 @@ import android.text.TextUtils;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.example.wifidemo.R;
-import com.wifi.lib.command.CommandCatalog;
-import com.wifi.lib.command.CommandEngine;
-import com.wifi.lib.command.CommandTable;
-import com.wifi.lib.command.CommandTableLoader;
+import com.wifi.lib.command.profile.CommandProfile;
 import com.wifi.lib.log.DLog;
 import com.wifi.lib.mvvm.BaseRepository;
 
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class CommandSettingsRepository extends BaseRepository {
     private static final String TAG = "CommandSettingsRepo";
-    private static final String PREF_NAME = "command_settings";
+    private static final String PREF_NAME_PREFIX = "wifi_lib_command_settings";
     private static final String KEY_LAST_URI = "last_uri";
-    private static final String BUILT_IN_SAMPLE_SOURCE = "raw/command_table_demo.csv";
 
-    private static volatile CommandSettingsRepository instance;
+    private static final Map<String, CommandSettingsRepository> INSTANCES = new ConcurrentHashMap<>();
 
     private final Context appContext;
     private final SharedPreferences preferences;
-    private final CommandCatalog catalog = CommandDemoCatalogs.getCatalog();
+    private final CommandProfile commandProfile;
+    private final CommandCatalog catalog;
     private final CommandEngine commandEngine = new CommandEngine();
     private final CommandTableLoader commandTableLoader = new CommandTableLoader();
 
@@ -40,21 +38,35 @@ public class CommandSettingsRepository extends BaseRepository {
     @Nullable
     private Uri lastLoadedUri;
 
-    private CommandSettingsRepository(@NonNull Context context) {
-        appContext = context.getApplicationContext();
-        preferences = appContext.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
+    private CommandSettingsRepository(@NonNull Context context, @NonNull CommandProfile commandProfile) {
+        this.appContext = context.getApplicationContext();
+        this.commandProfile = commandProfile;
+        this.catalog = commandProfile.getCatalog();
+        this.preferences = appContext.getSharedPreferences(
+                PREF_NAME_PREFIX + "_" + commandProfile.getProfileId(),
+                Context.MODE_PRIVATE
+        );
         restoreLastUri();
     }
 
-    public static CommandSettingsRepository getInstance(@NonNull Context context) {
-        if (instance == null) {
-            synchronized (CommandSettingsRepository.class) {
-                if (instance == null) {
-                    instance = new CommandSettingsRepository(context);
-                }
+    @NonNull
+    public static CommandSettingsRepository getInstance(
+            @NonNull Context context,
+            @NonNull CommandProfile commandProfile
+    ) {
+        String instanceKey = context.getPackageName() + "#" + commandProfile.getProfileId();
+        CommandSettingsRepository repository = INSTANCES.get(instanceKey);
+        if (repository != null) {
+            return repository;
+        }
+        synchronized (INSTANCES) {
+            repository = INSTANCES.get(instanceKey);
+            if (repository == null) {
+                repository = new CommandSettingsRepository(context, commandProfile);
+                INSTANCES.put(instanceKey, repository);
             }
         }
-        return instance;
+        return repository;
     }
 
     @NonNull
@@ -100,14 +112,14 @@ public class CommandSettingsRepository extends BaseRepository {
 
     @NonNull
     public LoadResult loadBuiltInSample() throws IOException {
-        try (InputStream inputStream = appContext.getResources().openRawResource(R.raw.command_table_demo)) {
-            CommandTable table = commandTableLoader.load(inputStream, BUILT_IN_SAMPLE_SOURCE);
+        try (InputStream inputStream = appContext.getResources().openRawResource(commandProfile.getBuiltInTableResId())) {
+            CommandTable table = commandTableLoader.load(inputStream, commandProfile.getBuiltInSourceLabel());
             CommandCatalog.ValidationResult validationResult = catalog.validate(table);
             commandEngine.replaceCommandTable(table);
             currentTable = table;
             lastValidationResult = validationResult;
-            DLog.i(TAG, "已加载内置示例编码表，count=" + table.size());
-            return new LoadResult(table, validationResult, null, BUILT_IN_SAMPLE_SOURCE, true);
+            DLog.i(TAG, "已加载内置示例编码表，profile=" + commandProfile.getProfileId() + ", count=" + table.size());
+            return new LoadResult(table, validationResult, null, commandProfile.getBuiltInSourceLabel(), true);
         }
     }
 

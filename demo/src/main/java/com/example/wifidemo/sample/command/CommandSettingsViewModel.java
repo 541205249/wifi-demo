@@ -1,4 +1,4 @@
-package com.example.wifidemo.sample.command.ui;
+package com.example.wifidemo.sample.command;
 
 import android.app.Application;
 import android.net.Uri;
@@ -9,14 +9,15 @@ import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
-import com.example.wifidemo.sample.command.data.CommandDemoCatalogs;
-import com.example.wifidemo.sample.command.data.CommandSettingsRepository;
 import com.wifi.lib.command.CommandCatalog;
 import com.wifi.lib.command.CommandDefinition;
 import com.wifi.lib.command.CommandEngine;
+import com.wifi.lib.command.CommandSettingsRepository;
 import com.wifi.lib.command.CommandTable;
 import com.wifi.lib.command.InboundCommand;
 import com.wifi.lib.command.OutboundCommand;
+import com.wifi.lib.command.profile.OptometryCommandCatalogs;
+import com.wifi.lib.command.profile.OptometryCommandProfile;
 import com.wifi.lib.log.DLog;
 import com.wifi.lib.mvvm.BaseViewModel;
 
@@ -44,7 +45,7 @@ public class CommandSettingsViewModel extends BaseViewModel {
 
     public CommandSettingsViewModel(@NonNull Application application) {
         super(application);
-        repository = CommandSettingsRepository.getInstance(application);
+        repository = CommandSettingsRepository.getInstance(application, OptometryCommandProfile.getInstance());
         commandEngine = repository.getCommandEngine();
         registerInboundHandlers();
         renderSnapshot(repository.snapshot());
@@ -163,19 +164,19 @@ public class CommandSettingsViewModel extends BaseViewModel {
     }
 
     private void registerInboundHandlers() {
-        commandEngine.registerInboundHandler(CommandDemoCatalogs.CODE_REPORT_MODULE_INFO,
+        commandEngine.registerInboundHandler(OptometryCommandCatalogs.CODE_REPORT_MODULE_INFO,
                 command -> appendConsole("已按编码 " + command.getCode() + " 处理模块信息上报: " + command.getRawMessage()));
-        commandEngine.registerInboundHandler(CommandDemoCatalogs.CODE_CONFIRM_AUTO_MODE,
+        commandEngine.registerInboundHandler(OptometryCommandCatalogs.CODE_CONFIRM_AUTO_MODE,
                 command -> appendConsole("已按编码 " + command.getCode() + " 处理自动模式切换确认: " + command.getRawMessage()));
-        commandEngine.registerInboundHandler(CommandDemoCatalogs.CODE_CONFIRM_MANUAL_MODE,
+        commandEngine.registerInboundHandler(OptometryCommandCatalogs.CODE_CONFIRM_MANUAL_MODE,
                 command -> appendConsole("已按编码 " + command.getCode() + " 处理手动模式切换确认: " + command.getRawMessage()));
-        commandEngine.registerInboundHandler(CommandDemoCatalogs.CODE_CONFIRM_START_OPTOMETRY,
+        commandEngine.registerInboundHandler(OptometryCommandCatalogs.CODE_CONFIRM_START_OPTOMETRY,
                 command -> appendConsole("已按编码 " + command.getCode() + " 处理开始验光确认: " + command.getRawMessage()));
-        commandEngine.registerInboundHandler(CommandDemoCatalogs.CODE_CONFIRM_STOP_OPTOMETRY,
+        commandEngine.registerInboundHandler(OptometryCommandCatalogs.CODE_CONFIRM_STOP_OPTOMETRY,
                 command -> appendConsole("已按编码 " + command.getCode() + " 处理停止验光确认: " + command.getRawMessage()));
-        commandEngine.registerInboundHandler(CommandDemoCatalogs.CODE_REPORT_DEVICE_STATUS,
+        commandEngine.registerInboundHandler(OptometryCommandCatalogs.CODE_REPORT_DEVICE_STATUS,
                 command -> appendConsole("已按编码 " + command.getCode() + " 处理设备状态上报: " + command.getRawMessage()));
-        commandEngine.registerInboundHandler(CommandDemoCatalogs.CODE_REPORT_OPTOMETRY_RESULT,
+        commandEngine.registerInboundHandler(OptometryCommandCatalogs.CODE_REPORT_OPTOMETRY_RESULT,
                 command -> appendConsole("已按编码 " + command.getCode() + " 处理验光结果上报: " + command.getRawMessage()));
     }
 

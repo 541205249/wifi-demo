@@ -6,10 +6,9 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.example.wifidemo.R;
 import com.example.wifidemo.databinding.ActivityDemoHomeBinding;
 import com.example.wifidemo.sample.brvah.ui.BrvahDemoActivity;
-import com.example.wifidemo.sample.command.ui.CommandSettingsActivity;
+import com.example.wifidemo.sample.command.CommandSettingsActivity;
 import com.example.wifidemo.sample.log.ui.LogSettingsActivity;
 import com.wifi.lib.baseui.BaseConfirmDialog;
 import com.wifi.lib.mvvm.BaseMvvmActivity;

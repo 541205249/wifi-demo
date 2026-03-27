@@ -16,11 +16,11 @@ import androidx.annotation.Nullable;
 
 import com.wifi.lib.command.CommandViewHelper;
 import com.wifi.lib.command.OutboundCommand;
+import com.wifi.lib.command.profile.OptometryCommandCatalogs;
 import com.wifi.lib.log.DLog;
 import com.wifi.lib.mvvm.BaseMvvmActivity;
 import com.wifi.lib.utils.Toasty;
 import com.wifi.optometry.communication.TcpServerService;
-import com.wifi.optometry.communication.command.OptometryCommandCatalogs;
 import com.wifi.optometry.communication.device.DeviceManager;
 import com.wifi.optometry.databinding.ActivityCommandSettingsBinding;
 
