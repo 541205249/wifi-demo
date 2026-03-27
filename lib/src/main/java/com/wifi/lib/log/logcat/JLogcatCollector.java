@@ -52,17 +52,22 @@ public class JLogcatCollector {
 
     public synchronized void start(@NonNull JLogConfig config) {
         logDirectory = config.getLogDirectoryPath();
-        File logDir = new File(logDirectory);
-        if (!logDir.exists()) {
-            //noinspection ResultOfMethodCallIgnored
-            logDir.mkdirs();
-        }
-        persistentLogFile = new File(logDir, PERSISTENT_LOG_FILE);
+        if (config.isSaveLogEnable()) {
+            File logDir = new File(logDirectory);
+            if (!logDir.exists()) {
+                //noinspection ResultOfMethodCallIgnored
+                logDir.mkdirs();
+            }
+            persistentLogFile = new File(logDir, PERSISTENT_LOG_FILE);
 
-        if (!started) {
-            loadPersistentLogs();
-            started = true;
+            if (!started) {
+                loadPersistentLogs();
+            }
+        } else {
+            persistentLogFile = null;
+            clearRuntimeBuffers();
         }
+        started = true;
 
         if (config.isMonitorCrashLog()) {
             if (!crashMonitorRegistered) {
@@ -76,7 +81,7 @@ public class JLogcatCollector {
 
     public void record(int priority, @NonNull String tag, @Nullable String message, @Nullable Throwable throwable) {
         JLogConfig config = JLog.get().getLogConfig();
-        if (config == null) {
+        if (config == null || !config.isSaveLogEnable()) {
             return;
         }
         if (!started) {
@@ -105,7 +110,7 @@ public class JLogcatCollector {
 
     public void saveLogsToFile() {
         JLogConfig config = JLog.get().getLogConfig();
-        if (config == null) {
+        if (config == null || !config.isSaveLogEnable()) {
             return;
         }
 
@@ -249,6 +254,10 @@ public class JLogcatCollector {
     }
 
     private void savePersistentLogs() {
+        if (persistentLogFile == null) {
+            return;
+        }
+
         List<String> logsToPersist;
         long persistedBufferSize = 0;
 
@@ -357,6 +366,16 @@ public class JLogcatCollector {
             for (String line : logLines) {
                 spilledBufferSize += getLineSize(line);
             }
+        }
+    }
+
+    private void clearRuntimeBuffers() {
+        synchronized (bufferLock) {
+            logBuffer.clear();
+            spilledLogBuffer.clear();
+            currentBufferSize = 0L;
+            spilledBufferSize = 0L;
+            pendingPersistentWrites = 0;
         }
     }
 

@@ -148,7 +148,7 @@ public class JLog {
                 break;
         }
 
-        if (jLog.logConfig != null) {
+        if (jLog.logConfig != null && jLog.logConfig.isSaveLogEnable()) {
             jLog.logcatCollector.record(priority, safeTag, safeMessage, throwable);
         }
         jLog.dispatch(new JLogEntry(
