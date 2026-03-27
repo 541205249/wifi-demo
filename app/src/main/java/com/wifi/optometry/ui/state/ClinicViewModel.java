@@ -4,9 +4,9 @@ import android.app.Application;
 import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
-import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 
+import com.wifi.lib.mvvm.BaseViewModel;
 import com.wifi.optometry.communication.device.DeviceHistoryStore;
 import com.wifi.optometry.data.ClinicRepository;
 import com.wifi.optometry.domain.ExamWorkflowEngine;
@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class ClinicViewModel extends AndroidViewModel {
+public class ClinicViewModel extends BaseViewModel {
     private final ClinicRepository repository;
     private final DeviceHistoryStore deviceHistoryStore;
     private DeviceServiceGateway deviceServiceGateway;

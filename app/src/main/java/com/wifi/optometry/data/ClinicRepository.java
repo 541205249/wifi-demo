@@ -5,6 +5,7 @@ import android.text.TextUtils;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.wifi.lib.mvvm.BaseRepository;
 import com.wifi.optometry.communication.ServerConstance;
 import com.wifi.optometry.domain.ExamWorkflowEngine;
 import com.wifi.optometry.domain.model.ClinicSettings;
@@ -26,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public class ClinicRepository {
+public class ClinicRepository extends BaseRepository {
     private static volatile ClinicRepository instance;
 
     private final MutableLiveData<List<PatientProfile>> patientListLiveData = new MutableLiveData<>();

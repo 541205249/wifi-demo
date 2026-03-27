@@ -2,18 +2,15 @@ package com.wifi.optometry.ui.main;
 
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.wifi.optometry.R;
+import com.wifi.optometry.databinding.FragmentProgramBinding;
 import com.wifi.optometry.domain.model.ExamProgram;
 import com.wifi.optometry.domain.model.ExamSession;
 import com.wifi.optometry.domain.model.ExamStep;
@@ -21,7 +18,7 @@ import com.wifi.optometry.domain.model.ExamStep;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ProgramFragment extends BaseClinicFragment {
+public class ProgramFragment extends BaseClinicFragment<FragmentProgramBinding> {
     private TextView tvCurrentProgram;
     private TextView tvCurrentStep;
     private LinearLayout layoutPrograms;
@@ -33,22 +30,17 @@ public class ProgramFragment extends BaseClinicFragment {
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_program, container, false);
+    protected void initWidgets(@Nullable Bundle savedInstanceState) {
+        tvCurrentProgram = binding.tvCurrentProgram;
+        tvCurrentStep = binding.tvCurrentStep;
+        layoutPrograms = binding.layoutPrograms;
+        layoutSteps = binding.layoutProgramSteps;
+
+        binding.btnAddCustomStep.setOnClickListener(v -> showCustomStepDialog());
     }
 
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        bindSharedViewModel();
-        tvCurrentProgram = view.findViewById(R.id.tvCurrentProgram);
-        tvCurrentStep = view.findViewById(R.id.tvCurrentStep);
-        layoutPrograms = view.findViewById(R.id.layoutPrograms);
-        layoutSteps = view.findViewById(R.id.layoutProgramSteps);
-
-        view.findViewById(R.id.btnAddCustomStep).setOnClickListener(v -> showCustomStepDialog());
-
+    protected void observeUi() {
         clinicViewModel.getPrograms().observe(getViewLifecycleOwner(), programs -> {
             programList.clear();
             if (programs != null) {

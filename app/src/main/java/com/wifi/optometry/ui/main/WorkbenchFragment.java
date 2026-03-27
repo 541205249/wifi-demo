@@ -3,15 +3,12 @@ package com.wifi.optometry.ui.main;
 import android.app.AlertDialog;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.google.android.material.button.MaterialButton;
@@ -19,6 +16,7 @@ import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.wifi.optometry.R;
+import com.wifi.optometry.databinding.FragmentWorkbenchBinding;
 import com.wifi.optometry.domain.model.ExamProgram;
 import com.wifi.optometry.domain.model.ExamSession;
 import com.wifi.optometry.domain.model.ExamStep;
@@ -31,7 +29,7 @@ import com.wifi.optometry.util.ClinicFormatters;
 import java.util.ArrayList;
 import java.util.List;
 
-public class WorkbenchFragment extends BaseClinicFragment {
+public class WorkbenchFragment extends BaseClinicFragment<FragmentWorkbenchBinding> {
     private TextView tvPatientSummary;
     private TextView tvProgramSummary;
     private TextView tvStepSummary;
@@ -78,46 +76,42 @@ public class WorkbenchFragment extends BaseClinicFragment {
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_workbench, container, false);
+    protected void initWidgets(@Nullable Bundle savedInstanceState) {
+        bindViews();
+        bindStaticListeners();
+        buildModeButtons();
+        buildFunctionRows();
     }
 
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        bindSharedViewModel();
-        bindViews(view);
-        bindStaticListeners(view);
-        buildModeButtons();
-        buildFunctionRows();
+    protected void observeUi() {
         observeState();
     }
 
-    private void bindViews(View view) {
-        tvPatientSummary = view.findViewById(R.id.tvPatientSummary);
-        tvProgramSummary = view.findViewById(R.id.tvProgramSummary);
-        tvStepSummary = view.findViewById(R.id.tvStepSummary);
-        progressIndicator = view.findViewById(R.id.progressCurrentStep);
-        chipGroupCharts = view.findViewById(R.id.chipGroupCharts);
-        chipGroupFields = view.findViewById(R.id.chipGroupFields);
-        chipGroupEyes = view.findViewById(R.id.chipGroupEyes);
-        chipGroupLens = view.findViewById(R.id.chipGroupLens);
-        ivChartPreview = view.findViewById(R.id.ivChartPreview);
-        tvChartTitle = view.findViewById(R.id.tvChartTitle);
-        tvChartSubtitle = view.findViewById(R.id.tvChartSubtitle);
-        tvChartDescription = view.findViewById(R.id.tvChartDescription);
-        tvMeasurementMode = view.findViewById(R.id.tvMeasurementMode);
-        tvFarRight = view.findViewById(R.id.tvFarRight);
-        tvFarLeft = view.findViewById(R.id.tvFarLeft);
-        tvNearRight = view.findViewById(R.id.tvNearRight);
-        tvNearLeft = view.findViewById(R.id.tvNearLeft);
-        tvFinalRight = view.findViewById(R.id.tvFinalRight);
-        tvFinalLeft = view.findViewById(R.id.tvFinalLeft);
-        layoutModeButtons = view.findViewById(R.id.layoutModeButtons);
-        layoutFunctionRows = view.findViewById(R.id.layoutFunctionRows);
-        etSessionNote = view.findViewById(R.id.etSessionNote);
-        etStepNote = view.findViewById(R.id.etStepNote);
+    private void bindViews() {
+        tvPatientSummary = binding.tvPatientSummary;
+        tvProgramSummary = binding.tvProgramSummary;
+        tvStepSummary = binding.tvStepSummary;
+        progressIndicator = binding.progressCurrentStep;
+        chipGroupCharts = binding.chipGroupCharts;
+        chipGroupFields = binding.chipGroupFields;
+        chipGroupEyes = binding.chipGroupEyes;
+        chipGroupLens = binding.chipGroupLens;
+        ivChartPreview = binding.ivChartPreview;
+        tvChartTitle = binding.tvChartTitle;
+        tvChartSubtitle = binding.tvChartSubtitle;
+        tvChartDescription = binding.tvChartDescription;
+        tvMeasurementMode = binding.tvMeasurementMode;
+        tvFarRight = binding.tvFarRight;
+        tvFarLeft = binding.tvFarLeft;
+        tvNearRight = binding.tvNearRight;
+        tvNearLeft = binding.tvNearLeft;
+        tvFinalRight = binding.tvFinalRight;
+        tvFinalLeft = binding.tvFinalLeft;
+        layoutModeButtons = binding.layoutModeButtons;
+        layoutFunctionRows = binding.layoutFunctionRows;
+        etSessionNote = binding.etSessionNote;
+        etStepNote = binding.etStepNote;
 
         addChoiceChip(chipGroupFields, "SPH", ExamSession.MeasurementField.SPH.name(), v -> clinicViewModel.selectField(ExamSession.MeasurementField.SPH));
         addChoiceChip(chipGroupFields, "CYL", ExamSession.MeasurementField.CYL.name(), v -> clinicViewModel.selectField(ExamSession.MeasurementField.CYL));
@@ -137,16 +131,16 @@ public class WorkbenchFragment extends BaseClinicFragment {
         addChoiceChip(chipGroupLens, "显双", "lens_both", v -> clinicViewModel.setLensVisibility(ExamSession.EyeSelection.BOTH));
     }
 
-    private void bindStaticListeners(View view) {
-        view.findViewById(R.id.btnPrevStep).setOnClickListener(v -> clinicViewModel.moveToPreviousStep());
-        view.findViewById(R.id.btnNextStep).setOnClickListener(v -> clinicViewModel.moveToNextStep());
-        view.findViewById(R.id.btnChartHelp).setOnClickListener(v -> showChartHelp());
-        view.findViewById(R.id.btnAdjustMinus).setOnClickListener(v -> clinicViewModel.adjustMeasurement(false, false));
-        view.findViewById(R.id.btnAdjustPlus).setOnClickListener(v -> clinicViewModel.adjustMeasurement(true, false));
-        view.findViewById(R.id.btnShiftMinus).setOnClickListener(v -> clinicViewModel.adjustMeasurement(false, true));
-        view.findViewById(R.id.btnShiftPlus).setOnClickListener(v -> clinicViewModel.adjustMeasurement(true, true));
-        view.findViewById(R.id.btnSaveSessionNote).setOnClickListener(v -> clinicViewModel.updateSessionNote(readText(etSessionNote)));
-        view.findViewById(R.id.btnSaveStepNote).setOnClickListener(v -> clinicViewModel.updateCurrentStepNote(readText(etStepNote)));
+    private void bindStaticListeners() {
+        binding.btnPrevStep.setOnClickListener(v -> clinicViewModel.moveToPreviousStep());
+        binding.btnNextStep.setOnClickListener(v -> clinicViewModel.moveToNextStep());
+        binding.btnChartHelp.setOnClickListener(v -> showChartHelp());
+        binding.btnAdjustMinus.setOnClickListener(v -> clinicViewModel.adjustMeasurement(false, false));
+        binding.btnAdjustPlus.setOnClickListener(v -> clinicViewModel.adjustMeasurement(true, false));
+        binding.btnShiftMinus.setOnClickListener(v -> clinicViewModel.adjustMeasurement(false, true));
+        binding.btnShiftPlus.setOnClickListener(v -> clinicViewModel.adjustMeasurement(true, true));
+        binding.btnSaveSessionNote.setOnClickListener(v -> clinicViewModel.updateSessionNote(readText(etSessionNote)));
+        binding.btnSaveStepNote.setOnClickListener(v -> clinicViewModel.updateCurrentStepNote(readText(etStepNote)));
     }
 
     private void observeState() {

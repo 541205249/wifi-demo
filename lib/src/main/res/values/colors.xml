@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="wifi_lib_title_bg">#FFFFFFFF</color>
+    <color name="wifi_lib_title_text">#FF1F2937</color>
+    <color name="wifi_lib_title_action">#FF0F766E</color>
+    <color name="wifi_lib_loading_text">#FFFFFFFF</color>
+
+    <color name="wifi_lib_dialog_bg">#FFFFFFFF</color>
+    <color name="wifi_lib_dialog_outline">#FFD1D5DB</color>
+    <color name="wifi_lib_dialog_text_primary">#FF1F2937</color>
+    <color name="wifi_lib_dialog_text_secondary">#FF4B5563</color>
+    <color name="wifi_lib_dialog_action_bg">#FF0F766E</color>
+    <color name="wifi_lib_dialog_action_text">#FFFFFFFF</color>
+</resources>

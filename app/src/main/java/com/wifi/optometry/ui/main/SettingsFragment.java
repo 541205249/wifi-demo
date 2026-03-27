@@ -2,20 +2,16 @@ package com.wifi.optometry.ui.main;
 
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.Switch;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.wifi.optometry.R;
 import com.wifi.optometry.data.ExamSeedData;
+import com.wifi.optometry.databinding.FragmentSettingsBinding;
 import com.wifi.optometry.domain.model.ClinicSettings;
 
-public class SettingsFragment extends BaseClinicFragment {
+public class SettingsFragment extends BaseClinicFragment<FragmentSettingsBinding> {
     private EditText etCompanyName;
     private Switch switchCloudEnabled;
     private EditText etCloudUrl;
@@ -38,51 +34,46 @@ public class SettingsFragment extends BaseClinicFragment {
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_settings, container, false);
-    }
+    protected void initWidgets(@Nullable Bundle savedInstanceState) {
+        bindViews();
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        bindSharedViewModel();
-        bindViews(view);
-
-        view.findViewById(R.id.btnSaveSettings).setOnClickListener(v -> {
+        binding.btnSaveSettings.setOnClickListener(v -> {
             clinicViewModel.saveSettings(readSettingsFromForm());
             showToast("设置已保存");
         });
-        view.findViewById(R.id.btnResetSettings).setOnClickListener(v -> {
+        binding.btnResetSettings.setOnClickListener(v -> {
             ClinicSettings defaults = ExamSeedData.createSettings();
             bindSettings(defaults);
             clinicViewModel.saveSettings(defaults);
             showToast("已恢复默认设置");
         });
+    }
 
+    @Override
+    protected void observeUi() {
         clinicViewModel.getSettings().observe(getViewLifecycleOwner(), this::bindSettings);
     }
 
-    private void bindViews(View view) {
-        etCompanyName = view.findViewById(R.id.etCompanyName);
-        switchCloudEnabled = view.findViewById(R.id.switchCloudEnabled);
-        etCloudUrl = view.findViewById(R.id.etCloudUrl);
-        etCloudAccount = view.findViewById(R.id.etCloudAccount);
-        etCloudPassword = view.findViewById(R.id.etCloudPassword);
-        etLanguage = view.findViewById(R.id.etLanguage);
-        switchDuration = view.findViewById(R.id.switchDuration);
-        etDateUnit = view.findViewById(R.id.etDateUnit);
-        etTimeUnit = view.findViewById(R.id.etTimeUnit);
-        etSphStep = view.findViewById(R.id.etSphStep);
-        etSphShiftStep = view.findViewById(R.id.etSphShiftStep);
-        etCylStep = view.findViewById(R.id.etCylStep);
-        etCylShiftStep = view.findViewById(R.id.etCylShiftStep);
-        etAxisStep = view.findViewById(R.id.etAxisStep);
-        etAxisShiftStep = view.findViewById(R.id.etAxisShiftStep);
-        etPrismStep = view.findViewById(R.id.etPrismStep);
-        etPrismShiftStep = view.findViewById(R.id.etPrismShiftStep);
-        etPdStep = view.findViewById(R.id.etPdStep);
-        etPdShiftStep = view.findViewById(R.id.etPdShiftStep);
+    private void bindViews() {
+        etCompanyName = binding.etCompanyName;
+        switchCloudEnabled = binding.switchCloudEnabled;
+        etCloudUrl = binding.etCloudUrl;
+        etCloudAccount = binding.etCloudAccount;
+        etCloudPassword = binding.etCloudPassword;
+        etLanguage = binding.etLanguage;
+        switchDuration = binding.switchDuration;
+        etDateUnit = binding.etDateUnit;
+        etTimeUnit = binding.etTimeUnit;
+        etSphStep = binding.etSphStep;
+        etSphShiftStep = binding.etSphShiftStep;
+        etCylStep = binding.etCylStep;
+        etCylShiftStep = binding.etCylShiftStep;
+        etAxisStep = binding.etAxisStep;
+        etAxisShiftStep = binding.etAxisShiftStep;
+        etPrismStep = binding.etPrismStep;
+        etPrismShiftStep = binding.etPrismShiftStep;
+        etPdStep = binding.etPdStep;
+        etPdShiftStep = binding.etPdShiftStep;
     }
 
     private void bindSettings(ClinicSettings settings) {

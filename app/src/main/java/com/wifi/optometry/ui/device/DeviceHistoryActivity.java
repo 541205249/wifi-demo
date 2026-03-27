@@ -2,35 +2,26 @@ package com.wifi.optometry.ui.device;
 
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.widget.RadioGroup;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.annotation.Nullable;
 
-import com.google.android.material.appbar.MaterialToolbar;
+import com.wifi.lib.baseui.BaseVBActivity;
 import com.wifi.optometry.communication.device.DeviceHistoryStore;
 import com.wifi.optometry.R;
+import com.wifi.optometry.databinding.ActivityDeviceHistoryBinding;
 
 import java.util.List;
 
-public class DeviceHistoryActivity extends AppCompatActivity {
+public class DeviceHistoryActivity extends BaseVBActivity<ActivityDeviceHistoryBinding> {
     public static final String EXTRA_DEVICE_ID = "extra_device_id";
-
-    private TextView tvDeviceTitle;
-    private TextView tvDeviceSummary;
-    private RadioGroup rgFilter;
-    private TextView tvLogs;
-    private MaterialToolbar toolbar;
 
     private DeviceHistoryStore deviceHistoryStore;
     private String deviceId;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_device_history);
-
+    protected void initWidgets(@Nullable Bundle savedInstanceState) {
+        getStatusBarUI().setLightMode();
         deviceHistoryStore = DeviceHistoryStore.getInstance(this);
         deviceId = getIntent().getStringExtra(EXTRA_DEVICE_ID);
         if (TextUtils.isEmpty(deviceId)) {
@@ -39,9 +30,10 @@ public class DeviceHistoryActivity extends AppCompatActivity {
             return;
         }
 
-        initViews();
-        setupListeners();
-
+        setSupportActionBar(binding.topAppBar);
+        binding.topAppBar.setNavigationOnClickListener(v -> finish());
+        binding.topAppBar.setTitle("设备记录");
+        binding.rgFilter.setOnCheckedChangeListener((group, checkedId) -> renderHistory());
         renderHistory();
     }
 
@@ -57,37 +49,22 @@ public class DeviceHistoryActivity extends AppCompatActivity {
         return true;
     }
 
-    private void initViews() {
-        tvDeviceTitle = findViewById(R.id.tvDeviceTitle);
-        tvDeviceSummary = findViewById(R.id.tvDeviceSummary);
-        rgFilter = findViewById(R.id.rgFilter);
-        tvLogs = findViewById(R.id.tvLogs);
-        toolbar = findViewById(R.id.topAppBar);
-        setSupportActionBar(toolbar);
-        toolbar.setNavigationOnClickListener(v -> finish());
-        toolbar.setTitle("设备记录");
-    }
-
-    private void setupListeners() {
-        rgFilter.setOnCheckedChangeListener((group, checkedId) -> renderHistory());
-    }
-
     private void renderHistory() {
         DeviceHistoryStore.DeviceSummary summary = deviceHistoryStore.getDeviceSummary(deviceId);
         if (summary == null) {
-            tvDeviceTitle.setText(deviceId);
-            tvDeviceSummary.setText("暂无该设备记录");
-            tvLogs.setText("暂无记录");
+            binding.tvDeviceTitle.setText(deviceId);
+            binding.tvDeviceSummary.setText("暂无该设备记录");
+            binding.tvLogs.setText("暂无记录");
             return;
         }
 
-        tvDeviceTitle.setText(summary.getPrimaryLabel());
-        tvDeviceSummary.setText(buildSummaryText(summary));
-        tvLogs.setText(buildLogText(deviceHistoryStore.getLogs(deviceId, resolveFilter())));
+        binding.tvDeviceTitle.setText(summary.getPrimaryLabel());
+        binding.tvDeviceSummary.setText(buildSummaryText(summary));
+        binding.tvLogs.setText(buildLogText(deviceHistoryStore.getLogs(deviceId, resolveFilter())));
     }
 
     private DeviceHistoryStore.LogFilter resolveFilter() {
-        int checkedId = rgFilter.getCheckedRadioButtonId();
+        int checkedId = binding.rgFilter.getCheckedRadioButtonId();
         if (checkedId == R.id.rbCommunicationOnly) {
             return DeviceHistoryStore.LogFilter.COMMUNICATION;
         }

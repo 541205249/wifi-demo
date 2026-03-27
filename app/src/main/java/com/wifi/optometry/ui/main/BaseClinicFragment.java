@@ -8,20 +8,42 @@ import android.widget.Toast;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
-import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProvider;
+import androidx.viewbinding.ViewBinding;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
+import com.wifi.lib.mvvm.BaseMvvmFragment;
 import com.wifi.optometry.R;
 import com.wifi.optometry.ui.MainActivity;
 import com.wifi.optometry.ui.state.ClinicViewModel;
 
-public abstract class BaseClinicFragment extends Fragment {
+public abstract class BaseClinicFragment<VB extends ViewBinding> extends BaseMvvmFragment<VB, ClinicViewModel> {
     protected ClinicViewModel clinicViewModel;
 
-    protected void bindSharedViewModel() {
-        clinicViewModel = new ViewModelProvider(requireActivity()).get(ClinicViewModel.class);
+    @NonNull
+    @Override
+    protected Class<ClinicViewModel> getViewModelClass() {
+        return ClinicViewModel.class;
+    }
+
+    @Override
+    protected boolean useActivityViewModel() {
+        return true;
+    }
+
+    @Override
+    protected void onViewModelCreated(@NonNull ClinicViewModel viewModel) {
+        clinicViewModel = viewModel;
+    }
+
+    @Override
+    protected boolean enableDefaultLoadingObserver() {
+        return false;
+    }
+
+    @Override
+    protected boolean enableDefaultMessageObserver() {
+        return false;
     }
 
     protected MainActivity mainActivity() {

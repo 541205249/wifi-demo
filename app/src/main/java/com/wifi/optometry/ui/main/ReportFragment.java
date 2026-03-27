@@ -2,17 +2,14 @@ package com.wifi.optometry.ui.main;
 
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.wifi.optometry.R;
+import com.wifi.optometry.databinding.FragmentReportBinding;
 import com.wifi.optometry.domain.model.ExamProgram;
 import com.wifi.optometry.domain.model.ExamSession;
 import com.wifi.optometry.domain.model.ReportRecord;
@@ -22,7 +19,7 @@ import com.wifi.optometry.util.ClinicFormatters;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ReportFragment extends BaseClinicFragment {
+public class ReportFragment extends BaseClinicFragment<FragmentReportBinding> {
     private TextView tvCurrentReportHeader;
     private TextView tvVisionSummary;
     private TextView tvPrescriptionSummary;
@@ -38,35 +35,29 @@ public class ReportFragment extends BaseClinicFragment {
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_report, container, false);
-    }
+    protected void initWidgets(@Nullable Bundle savedInstanceState) {
+        tvCurrentReportHeader = binding.tvCurrentReportHeader;
+        tvVisionSummary = binding.tvVisionSummary;
+        tvPrescriptionSummary = binding.tvPrescriptionSummary;
+        tvQrPayload = binding.tvQrPayload;
+        layoutMetrics = binding.layoutMetrics;
+        layoutHistory = binding.layoutHistory;
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        bindSharedViewModel();
-
-        tvCurrentReportHeader = view.findViewById(R.id.tvCurrentReportHeader);
-        tvVisionSummary = view.findViewById(R.id.tvVisionSummary);
-        tvPrescriptionSummary = view.findViewById(R.id.tvPrescriptionSummary);
-        tvQrPayload = view.findViewById(R.id.tvQrPayload);
-        layoutMetrics = view.findViewById(R.id.layoutMetrics);
-        layoutHistory = view.findViewById(R.id.layoutHistory);
-
-        view.findViewById(R.id.btnSaveReport).setOnClickListener(v -> {
+        binding.btnSaveReport.setOnClickListener(v -> {
             clinicViewModel.saveCurrentReport();
             showToast("当前验光结果已存入报告历史");
         });
-        view.findViewById(R.id.btnImportLatestReport).setOnClickListener(v -> {
+        binding.btnImportLatestReport.setOnClickListener(v -> {
             clinicViewModel.importLatestReport();
             showToast("已导入最近一次报告到当前会话");
         });
-        view.findViewById(R.id.btnShowQrPayload).setOnClickListener(v -> showQrDialog());
-        view.findViewById(R.id.btnPrintPreview).setOnClickListener(v ->
+        binding.btnShowQrPayload.setOnClickListener(v -> showQrDialog());
+        binding.btnPrintPreview.setOnClickListener(v ->
                 showToast("纯 WiFi 版本暂未接入打印机，已保留报告预览入口"));
+    }
 
+    @Override
+    protected void observeUi() {
         clinicViewModel.getSession().observe(getViewLifecycleOwner(), examSession -> {
             session = examSession;
             renderCurrentReport();

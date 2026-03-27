@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@color/wifi_lib_title_text"
+        android:pathData="M14.71,6.71L13.29,5.29 6.58,12l6.71,6.71 1.41,-1.41L9.41,12z" />
+</vector>

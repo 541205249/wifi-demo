@@ -13,20 +13,18 @@ import android.os.PowerManager;
 import android.provider.Settings;
 import android.text.TextUtils;
 
-import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
-import androidx.lifecycle.ViewModelProvider;
 
-import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.navigation.NavigationView;
+import com.wifi.lib.mvvm.BaseMvvmActivity;
 import com.wifi.optometry.R;
 import com.wifi.optometry.communication.ServerConstance;
 import com.wifi.optometry.communication.TcpServerService;
 import com.wifi.optometry.communication.device.DeviceManager;
+import com.wifi.optometry.databinding.ActivityMainBinding;
 import com.wifi.optometry.domain.model.ConnectedDeviceInfo;
 import com.wifi.optometry.ui.main.DeviceFragment;
 import com.wifi.optometry.ui.main.PatientFragment;
@@ -43,12 +41,8 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements DeviceServiceGateway {
+public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicViewModel> implements DeviceServiceGateway {
     private static final int NOTIFICATION_PERMISSION_REQUEST_CODE = 1101;
-
-    private androidx.drawerlayout.widget.DrawerLayout drawerLayout;
-    private MaterialToolbar toolbar;
-    private NavigationView navigationView;
 
     private ClinicViewModel clinicViewModel;
     private TcpServerService tcpServerService;
@@ -79,15 +73,14 @@ public class MainActivity extends AppCompatActivity implements DeviceServiceGate
     };
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_main);
-
-        clinicViewModel = new ViewModelProvider(this).get(ClinicViewModel.class);
-        initViews();
-        setupNavigation();
-
+    protected void initWidgets(@Nullable Bundle savedInstanceState) {
+        getStatusBarUI().setLightMode();
+        setSupportActionBar(binding.topAppBar);
+        binding.topAppBar.setNavigationOnClickListener(v -> binding.drawerLayout.openDrawer(GravityCompat.START));
+        binding.navigationView.setNavigationItemSelectedListener(item -> {
+            binding.drawerLayout.closeDrawer(GravityCompat.START);
+            return openDestination(item.getItemId());
+        });
         checkNotificationPermission();
         requestBatteryOptimizationWhitelist();
         localIpAddress = resolveLocalIpAddress();
@@ -95,10 +88,21 @@ public class MainActivity extends AppCompatActivity implements DeviceServiceGate
         clinicViewModel.setDeviceServiceGateway(this);
         if (savedInstanceState == null) {
             openDestination(R.id.menu_workbench);
-            navigationView.setCheckedItem(R.id.menu_workbench);
+            binding.navigationView.setCheckedItem(R.id.menu_workbench);
         }
 
         startAndBindService();
+    }
+
+    @NonNull
+    @Override
+    protected Class<ClinicViewModel> getViewModelClass() {
+        return ClinicViewModel.class;
+    }
+
+    @Override
+    protected void onViewModelCreated(@NonNull ClinicViewModel viewModel) {
+        clinicViewModel = viewModel;
     }
 
     @Override
@@ -125,22 +129,6 @@ public class MainActivity extends AppCompatActivity implements DeviceServiceGate
         startActivity(intent);
     }
 
-    private void initViews() {
-        drawerLayout = findViewById(R.id.drawerLayout);
-        toolbar = findViewById(R.id.topAppBar);
-        navigationView = findViewById(R.id.navigationView);
-
-        setSupportActionBar(toolbar);
-        toolbar.setNavigationOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
-    }
-
-    private void setupNavigation() {
-        navigationView.setNavigationItemSelectedListener(item -> {
-            drawerLayout.closeDrawer(GravityCompat.START);
-            return openDestination(item.getItemId());
-        });
-    }
-
     private boolean openDestination(int itemId) {
         androidx.fragment.app.Fragment fragment;
         int titleResId;
@@ -164,10 +152,10 @@ public class MainActivity extends AppCompatActivity implements DeviceServiceGate
             titleResId = R.string.nav_workbench;
         }
 
-        toolbar.setTitle(titleResId);
+        binding.topAppBar.setTitle(titleResId);
         getSupportFragmentManager()
                 .beginTransaction()
-                .replace(R.id.fragmentContainer, fragment)
+                .replace(binding.fragmentContainer.getId(), fragment)
                 .commit();
         return true;
     }

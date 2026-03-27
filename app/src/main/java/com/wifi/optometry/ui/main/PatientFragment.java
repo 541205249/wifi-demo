@@ -2,25 +2,22 @@ package com.wifi.optometry.ui.main;
 
 import android.os.Bundle;
 import android.text.InputType;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.wifi.optometry.R;
+import com.wifi.optometry.databinding.FragmentPatientBinding;
 import com.wifi.optometry.domain.model.PatientProfile;
 import com.wifi.optometry.ui.shared.SimpleTextWatcher;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class PatientFragment extends BaseClinicFragment {
+public class PatientFragment extends BaseClinicFragment<FragmentPatientBinding> {
     private EditText etSearch;
     private LinearLayout layoutPatients;
     private EditText etSelectedPatient;
@@ -29,28 +26,23 @@ public class PatientFragment extends BaseClinicFragment {
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_patient, container, false);
-    }
+    protected void initWidgets(@Nullable Bundle savedInstanceState) {
+        etSearch = binding.etSearchPatient;
+        layoutPatients = binding.layoutPatients;
+        etSelectedPatient = binding.etSelectedPatientSummary;
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        bindSharedViewModel();
-        etSearch = view.findViewById(R.id.etSearchPatient);
-        layoutPatients = view.findViewById(R.id.layoutPatients);
-        etSelectedPatient = view.findViewById(R.id.etSelectedPatientSummary);
-
-        view.findViewById(R.id.btnAddPatient).setOnClickListener(v -> showPatientEditor(null));
-        view.findViewById(R.id.btnImportPatient).setOnClickListener(v -> showImportDialog());
+        binding.btnAddPatient.setOnClickListener(v -> showPatientEditor(null));
+        binding.btnImportPatient.setOnClickListener(v -> showImportDialog());
         etSearch.addTextChangedListener(new SimpleTextWatcher() {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 clinicViewModel.searchPatients(s == null ? "" : s.toString());
             }
         });
+    }
 
+    @Override
+    protected void observeUi() {
         clinicViewModel.getPatients().observe(getViewLifecycleOwner(), patients -> {
             patientList.clear();
             if (patients != null) {

@@ -2,19 +2,16 @@ package com.wifi.optometry.ui.main;
 
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.google.android.material.card.MaterialCardView;
 import com.wifi.optometry.R;
 import com.wifi.optometry.communication.device.DeviceHistoryStore;
+import com.wifi.optometry.databinding.FragmentDeviceBinding;
 import com.wifi.optometry.domain.model.ConnectedDeviceInfo;
 import com.wifi.optometry.domain.model.DeviceUiState;
 import com.wifi.optometry.domain.model.KnownDeviceSummary;
@@ -23,7 +20,7 @@ import com.wifi.optometry.util.ClinicFormatters;
 
 import java.util.List;
 
-public class DeviceFragment extends BaseClinicFragment {
+public class DeviceFragment extends BaseClinicFragment<FragmentDeviceBinding> {
     private TextView tvServerState;
     private TextView tvServerIp;
     private TextView tvServerPort;
@@ -36,33 +33,24 @@ public class DeviceFragment extends BaseClinicFragment {
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_device, container, false);
-    }
+    protected void initWidgets(@Nullable Bundle savedInstanceState) {
+        tvServerState = binding.tvServerState;
+        tvServerIp = binding.tvServerIp;
+        tvServerPort = binding.tvServerPort;
+        etPendingMessage = binding.etPendingMessage;
+        tvLogOutput = binding.tvLogOutput;
+        layoutConnectedDevices = binding.layoutConnectedDevices;
+        layoutKnownDevices = binding.layoutKnownDevices;
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        bindSharedViewModel();
-
-        tvServerState = view.findViewById(R.id.tvServerState);
-        tvServerIp = view.findViewById(R.id.tvServerIp);
-        tvServerPort = view.findViewById(R.id.tvServerPort);
-        etPendingMessage = view.findViewById(R.id.etPendingMessage);
-        tvLogOutput = view.findViewById(R.id.tvLogOutput);
-        layoutConnectedDevices = view.findViewById(R.id.layoutConnectedDevices);
-        layoutKnownDevices = view.findViewById(R.id.layoutKnownDevices);
-
-        view.findViewById(R.id.btnToggleServer).setOnClickListener(v -> {
+        binding.btnToggleServer.setOnClickListener(v -> {
             if (currentState != null && currentState.isServerRunning()) {
                 clinicViewModel.stopServer();
             } else {
                 clinicViewModel.startServer();
             }
         });
-        view.findViewById(R.id.btnRefreshDeviceState).setOnClickListener(v -> clinicViewModel.refreshDeviceState());
-        view.findViewById(R.id.btnBroadcastMessage).setOnClickListener(v -> {
+        binding.btnRefreshDeviceState.setOnClickListener(v -> clinicViewModel.refreshDeviceState());
+        binding.btnBroadcastMessage.setOnClickListener(v -> {
             String message = readPendingMessage();
             if (TextUtils.isEmpty(message)) {
                 showToast("请输入要发送的内容");
@@ -70,7 +58,7 @@ public class DeviceFragment extends BaseClinicFragment {
             }
             clinicViewModel.broadcastMessage(message);
         });
-        view.findViewById(R.id.btnSendToSelected).setOnClickListener(v -> {
+        binding.btnSendToSelected.setOnClickListener(v -> {
             String message = readPendingMessage();
             if (TextUtils.isEmpty(message)) {
                 showToast("请输入要发送的内容");
@@ -90,7 +78,10 @@ public class DeviceFragment extends BaseClinicFragment {
                 }
             }
         });
+    }
 
+    @Override
+    protected void observeUi() {
         clinicViewModel.getDeviceUiState().observe(getViewLifecycleOwner(), this::renderState);
     }
 
@@ -113,8 +104,7 @@ public class DeviceFragment extends BaseClinicFragment {
             }
         }
 
-        TextView btnToggle = requireView().findViewById(R.id.btnToggleServer);
-        btnToggle.setText(state.isServerRunning() ? "停止监听" : "启动监听");
+        binding.btnToggleServer.setText(state.isServerRunning() ? "停止监听" : "启动监听");
 
         renderConnectedDevices(state.getConnectedDevices(), state.getSelectedClientId());
         renderKnownDevices(state.getKnownDevices());
