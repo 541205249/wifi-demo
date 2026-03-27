@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">验光工作台</string>
+    <string name="app_name">Optometry</string>
     <string name="drawer_open">打开导航</string>
     <string name="drawer_close">关闭导航</string>
     <string name="nav_workbench">验光台</string>

@@ -1,10 +1,12 @@
 package com.wifi.lib.baseui;
 
+import android.graphics.Color;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.WindowCompat;
 import androidx.viewbinding.ViewBinding;
 
 import com.wifi.lib.baseui.delegate.PageLoadingUIDelegate;
@@ -24,6 +26,8 @@ public abstract class BaseVBActivity<VB extends ViewBinding> extends AppCompatAc
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        getWindow().setStatusBarColor(Color.TRANSPARENT);
         binding = ViewBindingReflector.inflate(this, getLayoutInflater());
         setContentView(binding.getRoot());
         onBindingCreated(savedInstanceState);

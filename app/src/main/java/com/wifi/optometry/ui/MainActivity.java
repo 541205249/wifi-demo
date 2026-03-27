@@ -18,6 +18,8 @@ import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import com.wifi.lib.log.DLog;
 import com.wifi.lib.mvvm.BaseMvvmActivity;
@@ -50,6 +52,55 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
     private TcpServerService tcpServerService;
     private boolean isServiceBound;
     private String localIpAddress;
+    private final TcpServerService.OnMessageListener serviceMessageListener = new TcpServerService.OnMessageListener() {
+        @Override
+        public void onMessageReceived(String clientId, String message) {
+            trace("服务回调收到模块消息，clientId=" + clientId + ", 长度=" + (message == null ? 0 : message.length()));
+            clinicViewModel.appendDeviceConsole("收到 " + clientId + " 的消息: " + message);
+            clinicViewModel.refreshDeviceState();
+        }
+
+        @Override
+        public void onClientConnected(String clientId) {
+            trace("服务回调模块接入，clientId=" + clientId);
+            clinicViewModel.appendDeviceConsole("模块已连接: " + clientId);
+            clinicViewModel.refreshDeviceState();
+        }
+
+        @Override
+        public void onClientIdentityResolved(String clientId, String macAddress) {
+            trace("服务回调模块身份已解析，clientId=" + clientId + ", mac=" + macAddress);
+            clinicViewModel.appendDeviceConsole("已识别模块身份: " + macAddress + " [" + clientId + "]");
+            clinicViewModel.refreshDeviceState();
+        }
+
+        @Override
+        public void onClientDisconnected(String clientId) {
+            trace("服务回调模块断开，clientId=" + clientId);
+            clinicViewModel.appendDeviceConsole("模块已断开: " + clientId);
+            clinicViewModel.refreshDeviceState();
+        }
+
+        @Override
+        public void onError(String error) {
+            trace("服务回调出现错误: " + error);
+            clinicViewModel.appendDeviceConsole("通信错误: " + error);
+            clinicViewModel.refreshDeviceState();
+        }
+
+        @Override
+        public void onServerStarted(String ipAddress) {
+            if (!TextUtils.isEmpty(ipAddress)) {
+                localIpAddress = ipAddress;
+            }
+            trace("服务回调监听已启动，地址=" + (TextUtils.isEmpty(ipAddress) ? getLocalIpAddress() : ipAddress)
+                    + ":" + ServerConstance.SERVER_PORT);
+            clinicViewModel.appendDeviceConsole("监听服务运行中，地址: "
+                    + (TextUtils.isEmpty(getLocalIpAddress()) ? "未获取" : getLocalIpAddress())
+                    + ":" + ServerConstance.SERVER_PORT);
+            clinicViewModel.refreshDeviceState();
+        }
+    };
 
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -79,6 +130,7 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
     @Override
     protected void initWidgets(@Nullable Bundle savedInstanceState) {
         getStatusBarUI().setLightMode();
+        applyWindowInsets();
         setSupportActionBar(binding.topAppBar);
         binding.topAppBar.setNavigationOnClickListener(v -> binding.drawerLayout.openDrawer(GravityCompat.START));
         binding.navigationView.setNavigationItemSelectedListener(item -> {
@@ -99,6 +151,28 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
         startAndBindService();
     }
 
+    private void applyWindowInsets() {
+        final int topAppBarPaddingTop = binding.topAppBar.getPaddingTop();
+        final int navigationViewPaddingTop = binding.navigationView.getPaddingTop();
+        ViewCompat.setOnApplyWindowInsetsListener(binding.drawerLayout, (view, insets) -> {
+            int topInset = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
+            binding.topAppBar.setPadding(
+                    binding.topAppBar.getPaddingLeft(),
+                    topAppBarPaddingTop + topInset,
+                    binding.topAppBar.getPaddingRight(),
+                    binding.topAppBar.getPaddingBottom()
+            );
+            binding.navigationView.setPadding(
+                    binding.navigationView.getPaddingLeft(),
+                    navigationViewPaddingTop + topInset,
+                    binding.navigationView.getPaddingRight(),
+                    binding.navigationView.getPaddingBottom()
+            );
+            return insets;
+        });
+        ViewCompat.requestApplyInsets(binding.drawerLayout);
+    }
+
     @NonNull
     @Override
     protected Class<ClinicViewModel> getViewModelClass() {
@@ -113,6 +187,9 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (tcpServerService != null) {
+            tcpServerService.unregisterOnMessageListener(serviceMessageListener);
+        }
         if (isServiceBound) {
             unbindService(serviceConnection);
             isServiceBound = false;
@@ -176,55 +253,7 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
         if (tcpServerService == null) {
             return;
         }
-        tcpServerService.setOnMessageListener(new TcpServerService.OnMessageListener() {
-            @Override
-            public void onMessageReceived(String clientId, String message) {
-                trace("服务回调收到模块消息，clientId=" + clientId + ", 长度=" + (message == null ? 0 : message.length()));
-                clinicViewModel.appendDeviceConsole("收到 " + clientId + " 的消息: " + message);
-                clinicViewModel.refreshDeviceState();
-            }
-
-            @Override
-            public void onClientConnected(String clientId) {
-                trace("服务回调模块接入，clientId=" + clientId);
-                clinicViewModel.appendDeviceConsole("模块已连接: " + clientId);
-                clinicViewModel.refreshDeviceState();
-            }
-
-            @Override
-            public void onClientIdentityResolved(String clientId, String macAddress) {
-                trace("服务回调模块身份已解析，clientId=" + clientId + ", mac=" + macAddress);
-                clinicViewModel.appendDeviceConsole("已识别模块身份: " + macAddress + " [" + clientId + "]");
-                clinicViewModel.refreshDeviceState();
-            }
-
-            @Override
-            public void onClientDisconnected(String clientId) {
-                trace("服务回调模块断开，clientId=" + clientId);
-                clinicViewModel.appendDeviceConsole("模块已断开: " + clientId);
-                clinicViewModel.refreshDeviceState();
-            }
-
-            @Override
-            public void onError(String error) {
-                trace("服务回调出现错误: " + error);
-                clinicViewModel.appendDeviceConsole("通信错误: " + error);
-                clinicViewModel.refreshDeviceState();
-            }
-
-            @Override
-            public void onServerStarted(String ipAddress) {
-                if (!TextUtils.isEmpty(ipAddress)) {
-                    localIpAddress = ipAddress;
-                }
-                trace("服务回调监听已启动，地址=" + (TextUtils.isEmpty(ipAddress) ? getLocalIpAddress() : ipAddress)
-                        + ":" + ServerConstance.SERVER_PORT);
-                clinicViewModel.appendDeviceConsole("监听服务运行中，地址: "
-                        + (TextUtils.isEmpty(getLocalIpAddress()) ? "未获取" : getLocalIpAddress())
-                        + ":" + ServerConstance.SERVER_PORT);
-                clinicViewModel.refreshDeviceState();
-            }
-        });
+        tcpServerService.registerOnMessageListener(serviceMessageListener);
     }
 
     private void checkNotificationPermission() {

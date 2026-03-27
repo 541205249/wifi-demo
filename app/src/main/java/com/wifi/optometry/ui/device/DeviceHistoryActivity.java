@@ -4,6 +4,8 @@ import android.os.Bundle;
 import android.text.TextUtils;
 
 import androidx.annotation.Nullable;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import com.wifi.lib.baseui.BaseVBActivity;
 import com.wifi.lib.utils.Toasty;
@@ -22,6 +24,7 @@ public class DeviceHistoryActivity extends BaseVBActivity<ActivityDeviceHistoryB
     @Override
     protected void initWidgets(@Nullable Bundle savedInstanceState) {
         getStatusBarUI().setLightMode();
+        applyWindowInsets();
         deviceHistoryStore = DeviceHistoryStore.getInstance(this);
         deviceId = getIntent().getStringExtra(EXTRA_DEVICE_ID);
         if (TextUtils.isEmpty(deviceId)) {
@@ -35,6 +38,21 @@ public class DeviceHistoryActivity extends BaseVBActivity<ActivityDeviceHistoryB
         binding.topAppBar.setTitle("设备记录");
         binding.rgFilter.setOnCheckedChangeListener((group, checkedId) -> renderHistory());
         renderHistory();
+    }
+
+    private void applyWindowInsets() {
+        final int topAppBarPaddingTop = binding.topAppBar.getPaddingTop();
+        ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (view, insets) -> {
+            int topInset = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
+            binding.topAppBar.setPadding(
+                    binding.topAppBar.getPaddingLeft(),
+                    topAppBarPaddingTop + topInset,
+                    binding.topAppBar.getPaddingRight(),
+                    binding.topAppBar.getPaddingBottom()
+            );
+            return insets;
+        });
+        ViewCompat.requestApplyInsets(binding.getRoot());
     }
 
     @Override

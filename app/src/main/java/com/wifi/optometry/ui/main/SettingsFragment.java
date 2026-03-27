@@ -1,5 +1,6 @@
 package com.wifi.optometry.ui.main;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.widget.EditText;
@@ -10,6 +11,7 @@ import androidx.annotation.Nullable;
 import com.wifi.optometry.data.ExamSeedData;
 import com.wifi.optometry.databinding.FragmentSettingsBinding;
 import com.wifi.optometry.domain.model.ClinicSettings;
+import com.wifi.optometry.ui.command.CommandSettingsActivity;
 
 public class SettingsFragment extends BaseClinicFragment<FragmentSettingsBinding> {
     private EditText etCompanyName;
@@ -47,6 +49,9 @@ public class SettingsFragment extends BaseClinicFragment<FragmentSettingsBinding
             clinicViewModel.saveSettings(defaults);
             showToast("已恢复默认设置");
         });
+        binding.btnOpenCommandSettings.setOnClickListener(v ->
+                startActivity(new Intent(requireContext(), CommandSettingsActivity.class))
+        );
     }
 
     @Override

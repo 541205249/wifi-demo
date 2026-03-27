@@ -13,6 +13,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.PowerManager;
 import android.text.TextUtils;
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
@@ -32,6 +33,7 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -51,7 +53,9 @@ public class TcpServerService extends Service {
 
     private DeviceManager deviceManager;
     private DeviceHistoryStore deviceHistoryStore;
-    private OnMessageListener messageListener;
+    private final CopyOnWriteArrayList<OnMessageListener> messageListeners = new CopyOnWriteArrayList<>();
+    @Nullable
+    private OnMessageListener legacyMessageListener;
     private Handler mainHandler;
     private String localIpAddress;
 
@@ -192,7 +196,29 @@ public class TcpServerService extends Service {
     }
 
     public void setOnMessageListener(OnMessageListener listener) {
-        this.messageListener = listener;
+        if (legacyMessageListener != null) {
+            messageListeners.remove(legacyMessageListener);
+        }
+        legacyMessageListener = listener;
+        if (listener != null && !messageListeners.contains(listener)) {
+            messageListeners.add(listener);
+        }
+    }
+
+    public void registerOnMessageListener(@NonNull OnMessageListener listener) {
+        if (!messageListeners.contains(listener)) {
+            messageListeners.add(listener);
+        }
+    }
+
+    public void unregisterOnMessageListener(@Nullable OnMessageListener listener) {
+        if (listener == null) {
+            return;
+        }
+        messageListeners.remove(listener);
+        if (listener == legacyMessageListener) {
+            legacyMessageListener = null;
+        }
     }
 
     public void setLocalIpAddress(String ipAddress) {
@@ -315,9 +341,7 @@ public class TcpServerService extends Service {
                 JLog.i(TAG, "Server started on port " + ServerConstance.SERVER_PORT + ", IP: " + localIpAddress);
             trace("监听已启动，address=" + localIpAddress + ":" + ServerConstance.SERVER_PORT);
 
-            if (messageListener != null) {
-                mainHandler.post(() -> messageListener.onServerStarted(localIpAddress));
-            }
+            postToListeners(listener -> listener.onServerStarted(localIpAddress));
 
             updateNotification("TCP 服务器运行中 - 端口：" + ServerConstance.SERVER_PORT);
                 JLog.i(TAG, "Server started successfully");
@@ -353,10 +377,8 @@ public class TcpServerService extends Service {
                         if (isRunning) {
                     JLog.e(TAG, "Error accepting client", e);
                             traceError("接收客户端连接失败", e);
-                            if (messageListener != null) {
-                                mainHandler.post(() ->
-                                        messageListener.onError("接受客户端失败：" + e.getMessage()));
-                            }
+                            postToListeners(listener ->
+                                    listener.onError("接受客户端失败：" + e.getMessage()));
                         } else {
                     JLog.d(TAG, "Server stopped, accept loop exiting");
                         }
@@ -367,9 +389,7 @@ public class TcpServerService extends Service {
                 JLog.e(TAG, "Failed to start server", e);
                 traceError("监听启动失败", e);
             isRunning = false;
-            if (messageListener != null) {
-                mainHandler.post(() -> messageListener.onError("启动服务器失败：" + e.getMessage()));
-            }
+            postToListeners(listener -> listener.onError("启动服务器失败：" + e.getMessage()));
         }
     }
 
@@ -385,9 +405,7 @@ public class TcpServerService extends Service {
                     heartbeatManager.onClientConnected(device.getDeviceId());
                 }
                 recordConnection(device, true);
-                if (messageListener != null) {
-                    mainHandler.post(() -> messageListener.onClientConnected(device.getDeviceId()));
-                }
+                postToListeners(listener -> listener.onClientConnected(device.getDeviceId()));
             }
 
             @Override
@@ -401,9 +419,7 @@ public class TcpServerService extends Service {
                 recordConnection(device, false);
         JLog.i(TAG, "========================================");
 
-                if (messageListener != null) {
-                    mainHandler.post(() -> messageListener.onClientDisconnected(device.getDeviceId()));
-                }
+                postToListeners(listener -> listener.onClientDisconnected(device.getDeviceId()));
             }
 
             @Override
@@ -415,9 +431,7 @@ public class TcpServerService extends Service {
                         + ", length=" + (message == null ? 0 : message.length()));
                 recordCommunication(device, DeviceHistoryStore.ACTION_RECEIVED, message);
 
-                if (messageListener != null) {
-                    mainHandler.post(() -> messageListener.onMessageReceived(device.getDeviceId(), message));
-                }
+                postToListeners(listener -> listener.onMessageReceived(device.getDeviceId(), message));
             }
         });
         JLog.i(TAG, "DeviceManager initialized");
@@ -599,9 +613,7 @@ public class TcpServerService extends Service {
             }
         }
 
-        if (messageListener != null) {
-            mainHandler.post(() -> messageListener.onClientIdentityResolved(device.getDeviceId(), normalizedMac));
-        }
+        postToListeners(listener -> listener.onClientIdentityResolved(device.getDeviceId(), normalizedMac));
     }
 
     private void handleMacResolutionFailed(String sessionId) {
@@ -756,6 +768,25 @@ public class TcpServerService extends Service {
         if (manager != null) {
             manager.notify(NOTIFICATION_ID, createNotification(content));
         }
+    }
+
+    private void postToListeners(@NonNull ListenerAction action) {
+        if (mainHandler == null || messageListeners.isEmpty()) {
+            return;
+        }
+        mainHandler.post(() -> {
+            for (OnMessageListener listener : messageListeners) {
+                try {
+                    action.onCallback(listener);
+                } catch (Exception e) {
+                    traceError("分发服务回调失败", e);
+                }
+            }
+        });
+    }
+
+    private interface ListenerAction {
+        void onCallback(@NonNull OnMessageListener listener);
     }
 
     private void trace(String message) {
