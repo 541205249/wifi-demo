@@ -50,6 +50,11 @@
             android:parentActivityName=".sample.ui.DemoHomeActivity" />
 
         <activity
+            android:name=".sample.network.ui.NetworkDemoActivity"
+            android:exported="false"
+            android:parentActivityName=".sample.ui.DemoHomeActivity" />
+
+        <activity
             android:name=".sample.command.CommandSettingsActivity"
             android:exported="false"
             android:parentActivityName=".sample.ui.DemoHomeActivity" />

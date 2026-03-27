@@ -10,4 +10,20 @@
     <string name="nav_settings">设置</string>
     <string name="drawer_open">打开导航</string>
     <string name="drawer_close">关闭导航</string>
+    <string name="demo_common_intro">说明</string>
+    <string name="demo_common_known">知道了</string>
+    <string name="demo_open_network_demo">打开网络请求示例</string>
+    <string name="demo_network_title">网络请求示例</string>
+    <string name="demo_network_stack_title">推荐网络组合</string>
+    <string name="demo_network_stack_desc">推荐沿用 Retrofit + OkHttp，并在 Repository 层承接接口调用、Gson 结果解析、错误解析和日志拦截，再把结果交给 ViewModel 更新 UI。这个示例页直接演示 GET、POST JSON、表单提交和文件上传四条链路。</string>
+    <string name="demo_network_action_title">请求动作</string>
+    <string name="demo_network_get">GET 查询</string>
+    <string name="demo_network_post_json">POST JSON</string>
+    <string name="demo_network_post_form">表单提交</string>
+    <string name="demo_network_upload">上传文件</string>
+    <string name="demo_network_request_preview">请求预览</string>
+    <string name="demo_network_response_preview">响应预览</string>
+    <string name="demo_network_base_url_prefix">演示基地址：%1$s</string>
+    <string name="demo_network_intro_title">网络框架说明</string>
+    <string name="demo_network_intro_content">lib 里已经下沉了 Retrofit 工厂、OkHttp 客户端、统一结果封装、基于 Gson 的可插拔结果解析器和 DLog 网络拦截。demo 页面展示的是最常见的四类请求写法，后续你在 app 里接正式接口时，保留 Service + Repository + ViewModel 这套分层即可。</string>
 </resources>

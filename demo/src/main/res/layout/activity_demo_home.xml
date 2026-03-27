@@ -79,6 +79,14 @@
                     android:text="打开 BRVAH 场景集" />
 
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnOpenNetworkDemo"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/demo_open_network_demo" />
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnOpenCommandSettings"
                     style="?attr/materialButtonOutlinedStyle"
                     android:layout_width="match_parent"
