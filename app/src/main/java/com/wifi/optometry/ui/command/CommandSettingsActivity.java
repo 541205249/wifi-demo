@@ -14,8 +14,9 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.wifi.lib.command.CommandViewHelper;
 import com.wifi.lib.command.OutboundCommand;
+import com.wifi.lib.command.gateway.ProtocolInboundEvent;
+import com.wifi.lib.command.CommandViewHelper;
 import com.wifi.lib.command.profile.OptometryCommandCatalogs;
 import com.wifi.lib.command.profile.OptometryCommandCodes;
 import com.wifi.lib.log.DLog;
@@ -84,6 +85,11 @@ public class CommandSettingsActivity extends BaseMvvmActivity<ActivityCommandSet
                 trace("TCP 服务启动，ip=" + ipAddress);
                 updateServiceState();
             });
+        }
+
+        @Override
+        public void onProtocolEvent(String clientId, @NonNull ProtocolInboundEvent event) {
+            runOnUiThread(() -> viewModel.onProtocolEvent(clientId, event));
         }
     };
 
@@ -217,17 +223,17 @@ public class CommandSettingsActivity extends BaseMvvmActivity<ActivityCommandSet
         CommandViewHelper.bindClickWithCodeHint(
                 binding.btnMockModuleInfo,
                 OptometryCommandCatalogs.requireReservation(OptometryCommandCodes.CODE_REPORT_MODULE_INFO),
-                v -> viewModel.onIncomingMessage("模拟模块", "INFO+HC25,FW=1.0.0")
+                v -> viewModel.simulateIncomingMessage("模拟模块", "INFO+HC25,FW=1.0.0")
         );
         CommandViewHelper.bindClickWithCodeHint(
                 binding.btnMockDeviceStatus,
                 OptometryCommandCatalogs.requireReservation(OptometryCommandCodes.CODE_REPORT_DEVICE_STATUS),
-                v -> viewModel.onIncomingMessage("模拟模块", "STATUS+READY")
+                v -> viewModel.simulateIncomingMessage("模拟模块", "STATUS+READY")
         );
         CommandViewHelper.bindClickWithCodeHint(
                 binding.btnMockOptometryResult,
                 OptometryCommandCatalogs.requireReservation(OptometryCommandCodes.CODE_REPORT_OPTOMETRY_RESULT),
-                v -> viewModel.onIncomingMessage("模拟模块", "RESULT+SPH=-1.25,CYL=-0.50,AXIS=180")
+                v -> viewModel.simulateIncomingMessage("模拟模块", "RESULT+SPH=-1.25,CYL=-0.50,AXIS=180")
         );
     }
 
@@ -305,13 +311,13 @@ public class CommandSettingsActivity extends BaseMvvmActivity<ActivityCommandSet
             return;
         }
 
-        OutboundCommand outboundCommand = viewModel.prepareCommand(code, arguments);
-        if (outboundCommand == null) {
-            return;
-        }
-
+        OutboundCommand outboundCommand;
         if (binding.switchBroadcastAll.isChecked()) {
-            tcpServerService.broadcastMessage(outboundCommand.getRawMessage());
+            outboundCommand = tcpServerService.broadcastCommandByCode(code, arguments);
+            if (outboundCommand == null) {
+                Toasty.showShort("按编码广播发送失败");
+                return;
+            }
             viewModel.onCommandSent("全部在线模块", outboundCommand);
             return;
         }
@@ -324,7 +330,11 @@ public class CommandSettingsActivity extends BaseMvvmActivity<ActivityCommandSet
 
         String clientId = connectedDeviceIds.get(selectedPosition);
         String targetLabel = tcpServerService.getDeviceDisplayLabel(clientId);
-        tcpServerService.sendMessageToClient(clientId, outboundCommand.getRawMessage());
+        outboundCommand = tcpServerService.sendCommandByCodeToClient(clientId, code, arguments);
+        if (outboundCommand == null) {
+            Toasty.showShort("按编码定向发送失败");
+            return;
+        }
         viewModel.onCommandSent(targetLabel, outboundCommand);
     }
 

@@ -24,6 +24,8 @@ import java.util.concurrent.ExecutorService;
  */
 public class DeviceManager {
     private static final String TAG = "DeviceManager";
+    private static final Charset GBK_CHARSET = Charset.forName("GBK");
+    private static final Charset ISO_8859_1_CHARSET = Charset.forName("ISO-8859-1");
 
     private final Map<String, ClientHandler> deviceMap;
     private final ExecutorService executorService;
@@ -411,31 +413,32 @@ public class DeviceManager {
                 traceWarn("默认字符集解码失败，尝试回退 deviceId=" + deviceId);
             }
 
-            try {
-                String gbkDecoded = new String(buffer, offset, length, Charset.forName("GBK"));
-                if (!gbkDecoded.contains("?")) {
-            JLog.d(TAG, "Successfully decoded with GBK charset");
-                    trace("使用 GBK 回退解码成功，deviceId=" + deviceId);
-                    return gbkDecoded;
-                }
-            } catch (Exception e) {
-            JLog.d(TAG, "Failed to decode with GBK charset");
-                traceWarn("GBK 回退解码失败，deviceId=" + deviceId);
+            String fallbackDecoded = tryDecodeWithFallback(buffer, offset, length, GBK_CHARSET, "GBK");
+            if (fallbackDecoded != null) {
+                return fallbackDecoded;
             }
 
-            try {
-                String isoDecoded = new String(buffer, offset, length, Charset.forName("ISO-8859-1"));
-                if (!isoDecoded.contains("?")) {
-            JLog.d(TAG, "Successfully decoded with ISO-8859-1 charset");
-                    trace("使用 ISO-8859-1 回退解码成功，deviceId=" + deviceId);
-                    return isoDecoded;
-                }
-            } catch (Exception e) {
-            JLog.d(TAG, "Failed to decode with ISO-8859-1 charset");
-                traceWarn("ISO-8859-1 回退解码失败，deviceId=" + deviceId);
+            fallbackDecoded = tryDecodeWithFallback(buffer, offset, length, ISO_8859_1_CHARSET, "ISO-8859-1");
+            if (fallbackDecoded != null) {
+                return fallbackDecoded;
             }
 
             return new String(buffer, offset, length, StandardCharsets.UTF_8);
+        }
+
+        private String tryDecodeWithFallback(byte[] buffer, int offset, int length, Charset charset, String charsetLabel) {
+            try {
+                String decoded = new String(buffer, offset, length, charset);
+                if (!decoded.contains("?")) {
+                    JLog.d(TAG, "Successfully decoded with " + charsetLabel + " charset");
+                    trace("使用 " + charsetLabel + " 回退解码成功，deviceId=" + deviceId);
+                    return decoded;
+                }
+            } catch (Exception e) {
+                JLog.d(TAG, "Failed to decode with " + charsetLabel + " charset");
+                traceWarn(charsetLabel + " 回退解码失败，deviceId=" + deviceId);
+            }
+            return null;
         }
 
         private boolean isValidUtf8(byte[] buffer, int offset, int length) {

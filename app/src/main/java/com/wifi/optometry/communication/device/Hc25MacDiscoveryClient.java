@@ -18,6 +18,7 @@ import java.util.regex.Pattern;
  */
 public final class Hc25MacDiscoveryClient {
     private static final String TAG = "Hc25MacDiscovery";
+    private static final String RESPONSE_COMPACT_REGEX = "\\s+";
     public static final int DEFAULT_SEARCH_PORT = 54321;
     public static final String DEFAULT_SEARCH_KEYWORD = "HC-25";
 
@@ -56,21 +57,11 @@ public final class Hc25MacDiscoveryClient {
             return null;
         }
 
-        Matcher matcher = MAC_PATTERN.matcher(response);
-        if (matcher.find()) {
-            String macAddress = DeviceHistoryStore.normalizeMacAddress(matcher.group(1));
-            DLog.d(TAG, "从 SEARCH 响应中解析到 MAC=" + macAddress);
+        String macAddress = findMacAddress(response, "SEARCH 响应");
+        if (!TextUtils.isEmpty(macAddress)) {
             return macAddress;
         }
-
-        String compactResponse = response.replaceAll("\\s+", "");
-        matcher = MAC_PATTERN.matcher(compactResponse);
-        if (matcher.find()) {
-            String macAddress = DeviceHistoryStore.normalizeMacAddress(matcher.group(1));
-            DLog.d(TAG, "从紧凑 SEARCH 响应中解析到 MAC=" + macAddress);
-            return macAddress;
-        }
-        return null;
+        return findMacAddress(response.replaceAll(RESPONSE_COMPACT_REGEX, ""), "紧凑 SEARCH 响应");
     }
 
     private String sendSearch(InetAddress remoteAddress) throws IOException {
@@ -105,6 +96,17 @@ public final class Hc25MacDiscoveryClient {
                 }
             }
         }
+    }
+
+    private String findMacAddress(String response, String responseLabel) {
+        Matcher matcher = MAC_PATTERN.matcher(response);
+        if (!matcher.find()) {
+            return null;
+        }
+
+        String macAddress = DeviceHistoryStore.normalizeMacAddress(matcher.group(1));
+        DLog.d(TAG, "从" + responseLabel + "中解析到 MAC=" + macAddress);
+        return macAddress;
     }
 }
 

@@ -28,6 +28,7 @@ import java.util.List;
 
 public class ClinicViewModel extends BaseViewModel {
     private static final String TAG = "ClinicViewModel";
+    private static final String PATIENT_IMPORT_SPLIT_REGEX = "[|,;]";
 
     private final ClinicRepository repository;
     private final DeviceHistoryStore deviceHistoryStore;
@@ -121,8 +122,17 @@ public class ClinicViewModel extends BaseViewModel {
             return;
         }
         trace("收到扫码导入患者请求，payloadLength=" + payload.length());
-        String[] parts = payload.split("[|,;]");
+        savePatient(parseImportedPatientProfile(payload));
+    }
+
+    private PatientProfile parseImportedPatientProfile(String payload) {
+        String[] parts = payload.split(PATIENT_IMPORT_SPLIT_REGEX);
         PatientProfile profile = new PatientProfile();
+        applyImportedPatientParts(profile, parts);
+        return profile;
+    }
+
+    private void applyImportedPatientParts(PatientProfile profile, String[] parts) {
         if (parts.length > 0) {
             profile.setName(parts[0].trim());
         }
@@ -141,7 +151,6 @@ public class ClinicViewModel extends BaseViewModel {
         if (parts.length > 5) {
             profile.setNote(parts[5].trim());
         }
-        savePatient(profile);
     }
 
     public void selectPatient(String patientId) {

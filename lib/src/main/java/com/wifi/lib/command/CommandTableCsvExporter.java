@@ -24,18 +24,8 @@ public final class CommandTableCsvExporter {
             for (CommandReservation reservation : catalog.getReservations()) {
                 writer.write(buildCsvLine(
                         reservation.getCodeValue(),
-                        reservation.getCodeExplanation(),
-                        reservation.getModuleName(),
-                        reservation.getSubModuleName(),
-                        reservation.getActionName(),
-                        reservation.getDirection().getLabel(),
                         "",
-                        "",
-                        CommandMatchMode.EXACT.getLabel(),
-                        reservation.getDescription(),
-                        "",
-                        "是",
-                        ""
+                        reservation.getCodeExplanation()
                 ));
                 writer.write('\n');
             }
@@ -48,18 +38,8 @@ public final class CommandTableCsvExporter {
     private String buildCsvHeader() {
         return buildCsvLine(
                 "编码",
-                "编号解释",
-                "大模块",
-                "子模块",
-                "动作",
-                "方向",
-                "发送命令",
-                "接收命令",
-                "接收匹配方式",
-                "描述",
-                "示例",
-                "启用",
-                "备注"
+                "指令",
+                "编号解释"
         );
     }
 

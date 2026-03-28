@@ -5,6 +5,7 @@ import android.net.Uri;
 import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.wifi.lib.log.DLog;
 
@@ -27,27 +28,53 @@ import java.util.Map;
  */
 public final class CommandTableLoader {
     private static final String TAG = "CommandTableLoader";
+    private static final String RULE_PREFIX = "prefix:";
+    private static final String RULE_REGEX = "regex:";
+    private static final String RULE_EXACT = "exact:";
 
     @NonNull
     public CommandTable loadFromUri(@NonNull Context context, @NonNull Uri uri) throws IOException {
+        return loadFromUri(context, uri, null);
+    }
+
+    @NonNull
+    public CommandTable loadFromUri(
+            @NonNull Context context,
+            @NonNull Uri uri,
+            @Nullable CommandCatalog catalog
+    ) throws IOException {
         try (InputStream inputStream = context.getContentResolver().openInputStream(uri)) {
             if (inputStream == null) {
                 throw new IOException("无法打开编码表文档: " + uri);
             }
             String sourceName = uri.getLastPathSegment() == null ? uri.toString() : uri.getLastPathSegment();
-            return load(inputStream, sourceName);
+            return load(inputStream, sourceName, catalog);
         }
     }
 
     @NonNull
     public CommandTable loadFromFile(@NonNull File file) throws IOException {
+        return loadFromFile(file, null);
+    }
+
+    @NonNull
+    public CommandTable loadFromFile(@NonNull File file, @Nullable CommandCatalog catalog) throws IOException {
         try (InputStream inputStream = new FileInputStream(file)) {
-            return load(inputStream, file.getName());
+            return load(inputStream, file.getName(), catalog);
         }
     }
 
     @NonNull
     public CommandTable load(@NonNull InputStream inputStream, @NonNull String sourceName) throws IOException {
+        return load(inputStream, sourceName, null);
+    }
+
+    @NonNull
+    public CommandTable load(
+            @NonNull InputStream inputStream,
+            @NonNull String sourceName,
+            @Nullable CommandCatalog catalog
+    ) throws IOException {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
             String line;
             int lineNumber = 0;
@@ -73,7 +100,7 @@ public final class CommandTableLoader {
                     throw new IllegalStateException("编码表表头解析失败");
                 }
 
-                CommandDefinition definition = buildDefinition(cells, headerIndexMap, lineNumber);
+                CommandDefinition definition = buildDefinition(cells, headerIndexMap, lineNumber, catalog);
                 definitions.add(definition);
             }
 
@@ -91,36 +118,64 @@ public final class CommandTableLoader {
     private CommandDefinition buildDefinition(
             @NonNull List<String> cells,
             @NonNull Map<String, Integer> headerIndexMap,
-            int lineNumber
+            int lineNumber,
+            @Nullable CommandCatalog catalog
     ) {
         String code = getCell(cells, headerIndexMap, "code");
         if (TextUtils.isEmpty(code)) {
             throw new IllegalArgumentException("第 " + lineNumber + " 行缺少编码");
         }
 
+        CommandReservation reservation = findReservation(catalog, code);
         String moduleName = getCell(cells, headerIndexMap, "moduleName");
+        if (TextUtils.isEmpty(moduleName) && reservation != null) {
+            moduleName = reservation.getModuleName();
+        }
         String subModuleName = getCell(cells, headerIndexMap, "subModuleName");
+        if (TextUtils.isEmpty(subModuleName) && reservation != null) {
+            subModuleName = reservation.getSubModuleName();
+        }
         String actionName = getCell(cells, headerIndexMap, "actionName");
+        if (TextUtils.isEmpty(actionName) && reservation != null) {
+            actionName = reservation.getActionName();
+        }
         String codeExplanation = getCell(cells, headerIndexMap, "codeExplanation");
+        if (TextUtils.isEmpty(codeExplanation) && reservation != null) {
+            codeExplanation = reservation.getCodeExplanation();
+        }
         if (TextUtils.isEmpty(codeExplanation)) {
             codeExplanation = moduleName + "/" + subModuleName + "/" + actionName;
         }
-        String directionValue = getCell(cells, headerIndexMap, "direction");
+        String commandValue = getCell(cells, headerIndexMap, "command");
         String sendCommand = getCell(cells, headerIndexMap, "sendCommand");
         String receiveCommand = getCell(cells, headerIndexMap, "receiveCommand");
         String receiveMatchModeValue = getCell(cells, headerIndexMap, "receiveMatchMode");
         String description = getCell(cells, headerIndexMap, "description");
+        if (TextUtils.isEmpty(description) && reservation != null) {
+            description = reservation.getDescription();
+        }
         String example = getCell(cells, headerIndexMap, "example");
         String enabledValue = getCell(cells, headerIndexMap, "enabled");
         String remark = getCell(cells, headerIndexMap, "remark");
 
-        CommandDirection direction = TextUtils.isEmpty(directionValue)
-                ? inferDirection(sendCommand, receiveCommand)
-                : CommandDirection.fromValue(directionValue);
+        ParsedCommand parsedCommand = parseCommandValue(commandValue);
+        CommandDirection direction = CommandCode.of(code).getDirection();
+        if (TextUtils.isEmpty(sendCommand) && TextUtils.isEmpty(receiveCommand) && !TextUtils.isEmpty(parsedCommand.command)) {
+            if (direction.supportsOutbound()) {
+                sendCommand = parsedCommand.command;
+            } else {
+                receiveCommand = parsedCommand.command;
+            }
+        }
 
-        CommandMatchMode receiveMatchMode = TextUtils.isEmpty(receiveMatchModeValue)
-                ? CommandMatchMode.EXACT
-                : CommandMatchMode.fromValue(receiveMatchModeValue);
+        CommandMatchMode receiveMatchMode;
+        if (!TextUtils.isEmpty(receiveMatchModeValue)) {
+            receiveMatchMode = CommandMatchMode.fromValue(receiveMatchModeValue);
+        } else if (direction.supportsInbound()) {
+            receiveMatchMode = parsedCommand.matchMode;
+        } else {
+            receiveMatchMode = CommandMatchMode.EXACT;
+        }
 
         boolean enabled = parseEnabled(enabledValue);
         return new CommandDefinition(
@@ -129,7 +184,6 @@ public final class CommandTableLoader {
                 subModuleName,
                 actionName,
                 codeExplanation,
-                direction,
                 sendCommand,
                 receiveCommand,
                 receiveMatchMode,
@@ -179,6 +233,11 @@ public final class CommandTableLoader {
         aliases.put("编号", "code");
         aliases.put("指令编码", "code");
 
+        aliases.put("command", "command");
+        aliases.put("cmd", "command");
+        aliases.put("指令", "command");
+        aliases.put("命令", "command");
+
         aliases.put("modulename", "moduleName");
         aliases.put("模块", "moduleName");
         aliases.put("大模块", "moduleName");
@@ -193,9 +252,6 @@ public final class CommandTableLoader {
         aliases.put("action", "actionName");
         aliases.put("动作", "actionName");
         aliases.put("动作名称", "actionName");
-
-        aliases.put("direction", "direction");
-        aliases.put("方向", "direction");
 
         aliases.put("codeexplanation", "codeExplanation");
         aliases.put("编号解释", "codeExplanation");
@@ -299,19 +355,43 @@ public final class CommandTableLoader {
                 || "开启".equals(normalized);
     }
 
-    @NonNull
-    private CommandDirection inferDirection(@NonNull String sendCommand, @NonNull String receiveCommand) {
-        boolean hasSend = !TextUtils.isEmpty(sendCommand);
-        boolean hasReceive = !TextUtils.isEmpty(receiveCommand);
-        if (hasSend && hasReceive) {
-            return CommandDirection.BIDIRECTIONAL;
+    @Nullable
+    private CommandReservation findReservation(@Nullable CommandCatalog catalog, @NonNull String code) {
+        if (catalog == null) {
+            return null;
         }
-        if (hasSend) {
-            return CommandDirection.OUTBOUND;
-        }
-        if (hasReceive) {
-            return CommandDirection.INBOUND;
-        }
-        return CommandDirection.BIDIRECTIONAL;
+        return catalog.findByCode(code);
     }
+
+    @NonNull
+    private ParsedCommand parseCommandValue(@NonNull String rawValue) {
+        if (TextUtils.isEmpty(rawValue)) {
+            return new ParsedCommand("", CommandMatchMode.EXACT);
+        }
+        String trimmed = rawValue.trim();
+        String normalized = trimmed.toLowerCase(Locale.ROOT);
+        if (normalized.startsWith(RULE_PREFIX)) {
+            return new ParsedCommand(trimmed.substring(RULE_PREFIX.length()).trim(), CommandMatchMode.PREFIX);
+        }
+        if (normalized.startsWith(RULE_REGEX)) {
+            return new ParsedCommand(trimmed.substring(RULE_REGEX.length()).trim(), CommandMatchMode.REGEX);
+        }
+        if (normalized.startsWith(RULE_EXACT)) {
+            return new ParsedCommand(trimmed.substring(RULE_EXACT.length()).trim(), CommandMatchMode.EXACT);
+        }
+        return new ParsedCommand(trimmed, CommandMatchMode.EXACT);
+    }
+
+    private static final class ParsedCommand {
+        @NonNull
+        private final String command;
+        @NonNull
+        private final CommandMatchMode matchMode;
+
+        private ParsedCommand(@NonNull String command, @NonNull CommandMatchMode matchMode) {
+            this.command = command;
+            this.matchMode = matchMode;
+        }
+    }
+
 }

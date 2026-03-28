@@ -14,8 +14,12 @@ import com.wifi.lib.command.CommandDefinition;
 import com.wifi.lib.command.CommandEngine;
 import com.wifi.lib.command.CommandSettingsRepository;
 import com.wifi.lib.command.CommandTable;
-import com.wifi.lib.command.InboundCommand;
 import com.wifi.lib.command.OutboundCommand;
+import com.wifi.lib.command.ack.AckChannel;
+import com.wifi.lib.command.dispatcher.ProtocolDispatchResult;
+import com.wifi.lib.command.dispatcher.ProtocolDispatcher;
+import com.wifi.lib.command.gateway.ProtocolGateway;
+import com.wifi.lib.command.gateway.ProtocolInboundEvent;
 import com.wifi.lib.command.profile.OptometryCommandCodes;
 import com.wifi.lib.command.profile.OptometryCommandProfile;
 import com.wifi.lib.log.DLog;
@@ -33,8 +37,10 @@ public class CommandSettingsViewModel extends BaseViewModel {
     private static final String TAG = "CommandSettingsVM";
     private static final int MAX_CONSOLE_LINE_COUNT = 80;
 
+    private final ProtocolGateway protocolGateway;
     private final CommandSettingsRepository repository;
     private final CommandEngine commandEngine;
+    private final ProtocolDispatcher protocolDispatcher = new ProtocolDispatcher();
     private final ArrayDeque<String> consoleLines = new ArrayDeque<>();
     private final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
 
@@ -45,9 +51,10 @@ public class CommandSettingsViewModel extends BaseViewModel {
 
     public CommandSettingsViewModel(@NonNull Application application) {
         super(application);
-        repository = CommandSettingsRepository.getInstance(application, OptometryCommandProfile.getInstance());
-        commandEngine = repository.getCommandEngine();
-        registerInboundHandlers();
+        protocolGateway = new ProtocolGateway(application, OptometryCommandProfile.getInstance());
+        repository = protocolGateway.getCommandSettingsRepository();
+        commandEngine = protocolGateway.getCommandEngine();
+        registerProtocolUseCases();
         renderSnapshot(repository.snapshot());
         appendConsole("命令框架已初始化，等待加载编码表");
     }
@@ -143,17 +150,19 @@ public class CommandSettingsViewModel extends BaseViewModel {
             appendConsole("收到空消息，来源=" + clientId);
             return;
         }
+        appendConsole("收到原始消息 [" + clientId + "]: " + rawMessage);
+    }
 
-        InboundCommand inboundCommand = commandEngine.resolveInbound(rawMessage);
-        if (inboundCommand == null) {
-            appendConsole("收到未匹配消息 [" + clientId + "]: " + rawMessage);
+    public void simulateIncomingMessage(@NonNull String clientId, @Nullable String rawMessage) {
+        onIncomingMessage(clientId, rawMessage);
+        if (TextUtils.isEmpty(rawMessage)) {
             return;
         }
+        dispatchProtocolEvent(clientId, protocolGateway.resolveInbound(rawMessage));
+    }
 
-        boolean handled = commandEngine.dispatchInbound(rawMessage);
-        if (!handled) {
-            appendConsole("收到编码 " + inboundCommand.getCode() + "，但未注册业务处理器");
-        }
+    public void onProtocolEvent(@NonNull String clientId, @NonNull ProtocolInboundEvent event) {
+        dispatchProtocolEvent(clientId, event);
     }
 
     @NonNull
@@ -163,21 +172,78 @@ public class CommandSettingsViewModel extends BaseViewModel {
         return arguments;
     }
 
-    private void registerInboundHandlers() {
-        commandEngine.registerInboundHandler(OptometryCommandCodes.CODE_REPORT_MODULE_INFO,
-                command -> appendConsole("已按编码 " + command.getCode() + " 处理模块信息上报: " + command.getRawMessage()));
-        commandEngine.registerInboundHandler(OptometryCommandCodes.CODE_CONFIRM_AUTO_MODE,
-                command -> appendConsole("已按编码 " + command.getCode() + " 处理自动模式切换确认: " + command.getRawMessage()));
-        commandEngine.registerInboundHandler(OptometryCommandCodes.CODE_CONFIRM_MANUAL_MODE,
-                command -> appendConsole("已按编码 " + command.getCode() + " 处理手动模式切换确认: " + command.getRawMessage()));
-        commandEngine.registerInboundHandler(OptometryCommandCodes.CODE_CONFIRM_START_OPTOMETRY,
-                command -> appendConsole("已按编码 " + command.getCode() + " 处理开始验光确认: " + command.getRawMessage()));
-        commandEngine.registerInboundHandler(OptometryCommandCodes.CODE_CONFIRM_STOP_OPTOMETRY,
-                command -> appendConsole("已按编码 " + command.getCode() + " 处理停止验光确认: " + command.getRawMessage()));
-        commandEngine.registerInboundHandler(OptometryCommandCodes.CODE_REPORT_DEVICE_STATUS,
-                command -> appendConsole("已按编码 " + command.getCode() + " 处理设备状态上报: " + command.getRawMessage()));
-        commandEngine.registerInboundHandler(OptometryCommandCodes.CODE_REPORT_OPTOMETRY_RESULT,
-                command -> appendConsole("已按编码 " + command.getCode() + " 处理验光结果上报: " + command.getRawMessage()));
+    private void registerProtocolUseCases() {
+        protocolDispatcher.registerCommandUseCase(OptometryCommandCodes.CODE_REPORT_MODULE_INFO,
+                context -> appendConsole("已按编码 " + context.getCode() + " 处理模块信息上报: " + context.getRawMessage()));
+        protocolDispatcher.registerCommandUseCase(OptometryCommandCodes.CODE_CONFIRM_AUTO_MODE,
+                context -> appendConsole("已按编码 " + context.getCode() + " 处理自动模式切换确认: " + context.getRawMessage()));
+        protocolDispatcher.registerCommandUseCase(OptometryCommandCodes.CODE_CONFIRM_MANUAL_MODE,
+                context -> appendConsole("已按编码 " + context.getCode() + " 处理手动模式切换确认: " + context.getRawMessage()));
+        protocolDispatcher.registerCommandUseCase(OptometryCommandCodes.CODE_CONFIRM_START_OPTOMETRY,
+                context -> appendConsole("已按编码 " + context.getCode() + " 处理开始验光确认: " + context.getRawMessage()));
+        protocolDispatcher.registerCommandUseCase(OptometryCommandCodes.CODE_CONFIRM_STOP_OPTOMETRY,
+                context -> appendConsole("已按编码 " + context.getCode() + " 处理停止验光确认: " + context.getRawMessage()));
+        protocolDispatcher.registerCommandUseCase(OptometryCommandCodes.CODE_REPORT_DEVICE_STATUS,
+                context -> appendConsole("已按编码 " + context.getCode() + " 处理设备状态上报: " + context.getRawMessage()));
+        protocolDispatcher.registerCommandUseCase(OptometryCommandCodes.CODE_REPORT_OPTOMETRY_RESULT,
+                context -> appendConsole("已按编码 " + context.getCode() + " 处理验光结果上报: " + context.getRawMessage()));
+
+        protocolDispatcher.registerAckUseCase(AckChannel.COMMAND, OptometryCommandCodes.CODE_START_OPTOMETRY,
+                context -> appendConsole("已按 ACK 处理开始验光回执: status="
+                        + context.getAckMessage().getStatus()
+                        + ", message=" + context.getAckMessage().getMessage()));
+        protocolDispatcher.registerAckUseCase(AckChannel.COMMAND, OptometryCommandCodes.CODE_STOP_OPTOMETRY,
+                context -> appendConsole("已按 ACK 处理停止验光回执: status="
+                        + context.getAckMessage().getStatus()
+                        + ", message=" + context.getAckMessage().getMessage()));
+        protocolDispatcher.registerAckUseCase(AckChannel.COMMAND, OptometryCommandCodes.CODE_SWITCH_AUTO_MODE,
+                context -> appendConsole("已按 ACK 处理自动模式切换回执: status="
+                        + context.getAckMessage().getStatus()
+                        + ", message=" + context.getAckMessage().getMessage()));
+        protocolDispatcher.registerAckUseCase(AckChannel.COMMAND, OptometryCommandCodes.CODE_SWITCH_MANUAL_MODE,
+                context -> appendConsole("已按 ACK 处理手动模式切换回执: status="
+                        + context.getAckMessage().getStatus()
+                        + ", message=" + context.getAckMessage().getMessage()));
+
+        protocolDispatcher.setCommandFallbackUseCase(
+                context -> appendConsole("收到已识别编码 " + context.getCode() + "，但当前页面未定义处理逻辑"));
+        protocolDispatcher.setAckFallbackUseCase(
+                context -> appendConsole("收到 ACK 但当前页面未注册处理器: channel="
+                        + context.getAckMessage().getChannel()
+                        + ", ref=" + context.getAckMessage().getReference()
+                        + ", session=" + context.getAckMessage().getSessionId()));
+        protocolDispatcher.setTransferFallbackUseCase(
+                context -> appendConsole("收到 transfer 分片，但 session 未注册: session="
+                        + context.getTransferChunk().getSessionId()
+                        + ", index=" + context.getTransferChunk().getIndex()
+                        + "/" + context.getTransferChunk().getTotalChunks()));
+        protocolDispatcher.setStreamFallbackUseCase(
+                context -> appendConsole("收到 stream 帧，但 session 未注册: session="
+                        + context.getStreamFrame().getSessionId()
+                        + ", seq=" + context.getStreamFrame().getSequence()
+                        + ", eos=" + context.getStreamFrame().isEndOfStream()));
+        protocolDispatcher.setUnknownUseCase(
+                context -> appendConsole("收到未匹配消息 [" + context.getClientId() + "]: " + context.getRawMessage()));
+        protocolDispatcher.setInvalidUseCase(
+                context -> appendConsole("协议网关解析失败 [" + context.getClientId() + "]: "
+                        + context.getEvent().getErrorMessage()));
+    }
+
+    private void dispatchProtocolEvent(@NonNull String clientId, @NonNull ProtocolInboundEvent event) {
+        ProtocolDispatchResult result = protocolDispatcher.dispatch(clientId, event);
+        if (result.isFailed()) {
+            appendConsole("协议事件分发失败: " + result.getDetail());
+        } else if (result.isUnhandled()) {
+            appendConsole("协议事件未命中业务处理器: "
+                    + event.getPayloadType()
+                    + " / " + result.getDetail());
+        } else if (result.isAutoRemoved()) {
+            appendConsole("协议会话已自动结束并移除: " + result.getRouteKey());
+        }
+        DLog.i(TAG, "协议事件分发完成，type="
+                + event.getPayloadType()
+                + ", status=" + result.getStatus()
+                + ", route=" + result.getRouteKey());
     }
 
     private void renderLoadResult(@NonNull CommandSettingsRepository.LoadResult loadResult) {
@@ -233,9 +299,6 @@ public class CommandSettingsViewModel extends BaseViewModel {
         }
         if (!validationResult.getUnexpectedCodes().isEmpty()) {
             builder.append("\n多余编码: ").append(join(validationResult.getUnexpectedCodes()));
-        }
-        if (!validationResult.getDirectionMismatches().isEmpty()) {
-            builder.append("\n方向不一致: ").append(join(validationResult.getDirectionMismatches()));
         }
         if (!validationResult.getUnconfiguredCodes().isEmpty()) {
             builder.append("\n未填命令: ").append(join(validationResult.getUnconfiguredCodes()));

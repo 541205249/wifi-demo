@@ -91,7 +91,7 @@ public class CommandSettingsRepository extends BaseRepository {
 
     @NonNull
     public LoadResult loadFromUri(@NonNull Uri uri) throws IOException {
-        CommandTable table = commandTableLoader.loadFromUri(appContext, uri);
+        CommandTable table = commandTableLoader.loadFromUri(appContext, uri, catalog);
         CommandCatalog.ValidationResult validationResult = catalog.validate(table);
         commandEngine.replaceCommandTable(table);
         currentTable = table;
@@ -113,7 +113,11 @@ public class CommandSettingsRepository extends BaseRepository {
     @NonNull
     public LoadResult loadBuiltInSample() throws IOException {
         try (InputStream inputStream = appContext.getResources().openRawResource(commandProfile.getBuiltInTableResId())) {
-            CommandTable table = commandTableLoader.load(inputStream, commandProfile.getBuiltInSourceLabel());
+            CommandTable table = commandTableLoader.load(
+                    inputStream,
+                    commandProfile.getBuiltInSourceLabel(),
+                    catalog
+            );
             CommandCatalog.ValidationResult validationResult = catalog.validate(table);
             commandEngine.replaceCommandTable(table);
             currentTable = table;

@@ -1,28 +1,26 @@
 package com.wifi.lib.command;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-
-import java.util.Locale;
 
 public enum CommandDirection {
-    OUTBOUND("发送"),
-    INBOUND("接收"),
-    BIDIRECTIONAL("双向");
+    OUTBOUND("发送", 's'),
+    INBOUND("接收", 'r');
 
     @NonNull
     private final String label;
+    private final char codePrefix;
 
-    CommandDirection(@NonNull String label) {
+    CommandDirection(@NonNull String label, char codePrefix) {
         this.label = label;
+        this.codePrefix = codePrefix;
     }
 
     public boolean supportsOutbound() {
-        return this == OUTBOUND || this == BIDIRECTIONAL;
+        return this == OUTBOUND;
     }
 
     public boolean supportsInbound() {
-        return this == INBOUND || this == BIDIRECTIONAL;
+        return this == INBOUND;
     }
 
     @NonNull
@@ -30,52 +28,19 @@ public enum CommandDirection {
         return label;
     }
 
-    @NonNull
-    public static CommandDirection fromValue(@Nullable String rawValue) {
-        if (rawValue == null) {
-            return BIDIRECTIONAL;
-        }
-
-        String normalized = normalize(rawValue);
-        if (normalized.isEmpty()) {
-            return BIDIRECTIONAL;
-        }
-
-        if ("发送".equals(normalized)
-                || "send".equals(normalized)
-                || "outbound".equals(normalized)
-                || "app2device".equals(normalized)
-                || "apptodevice".equals(normalized)
-                || "tx".equals(normalized)) {
-            return OUTBOUND;
-        }
-
-        if ("接收".equals(normalized)
-                || "receive".equals(normalized)
-                || "inbound".equals(normalized)
-                || "device2app".equals(normalized)
-                || "devicetoapp".equals(normalized)
-                || "rx".equals(normalized)) {
-            return INBOUND;
-        }
-
-        if ("双向".equals(normalized)
-                || "both".equals(normalized)
-                || "bidirectional".equals(normalized)
-                || "all".equals(normalized)) {
-            return BIDIRECTIONAL;
-        }
-
-        throw new IllegalArgumentException("无法识别的指令方向: " + rawValue);
+    public char getCodePrefix() {
+        return codePrefix;
     }
 
     @NonNull
-    private static String normalize(@NonNull String value) {
-        return value
-                .trim()
-                .toLowerCase(Locale.ROOT)
-                .replace("_", "")
-                .replace("-", "")
-                .replace(" ", "");
+    public static CommandDirection fromCodePrefix(char rawPrefix) {
+        char normalizedPrefix = Character.toLowerCase(rawPrefix);
+        if (normalizedPrefix == 's') {
+            return OUTBOUND;
+        }
+        if (normalizedPrefix == 'r') {
+            return INBOUND;
+        }
+        throw new IllegalArgumentException("无法识别的编码方向前缀: " + rawPrefix);
     }
 }

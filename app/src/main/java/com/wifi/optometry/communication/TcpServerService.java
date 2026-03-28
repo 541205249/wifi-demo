@@ -17,6 +17,19 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
+import com.wifi.lib.command.OutboundCommand;
+import com.wifi.lib.command.ack.AckMessage;
+import com.wifi.lib.command.gateway.ProtocolGateway;
+import com.wifi.lib.command.gateway.ProtocolInboundEvent;
+import com.wifi.lib.command.profile.OptometryCommandProfile;
+import com.wifi.lib.command.stream.StreamFrame;
+import com.wifi.lib.command.stream.StreamMetadata;
+import com.wifi.lib.command.stream.StreamSender;
+import com.wifi.lib.command.stream.StreamStats;
+import com.wifi.lib.command.stream.StreamStatsListener;
+import com.wifi.lib.command.transfer.TransferMetadata;
+import com.wifi.lib.command.transfer.TransferProgress;
+import com.wifi.lib.command.transfer.TransferProgressListener;
 import com.wifi.lib.log.DLog;
 import com.wifi.lib.log.JLog;
 import com.wifi.optometry.communication.device.DeviceHistoryStore;
@@ -36,6 +49,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.io.File;
 
 public class TcpServerService extends Service {
     private static final String TAG = "TcpServerService";
@@ -46,6 +60,7 @@ public class TcpServerService extends Service {
     private final IBinder binder = new TcpServerBinder();
     private final Map<String, PendingArchiveState> pendingArchiveStates = new ConcurrentHashMap<>();
     private final Hc25MacDiscoveryClient macDiscoveryClient = new Hc25MacDiscoveryClient();
+    private ProtocolGateway protocolGateway;
 
     private ServerSocket serverSocket;
     private ExecutorService executorService;
@@ -75,6 +90,12 @@ public class TcpServerService extends Service {
         void onError(String error);
 
         void onServerStarted(String ipAddress);
+
+        default void onProtocolEvent(String clientId, @NonNull ProtocolInboundEvent event) {
+        }
+
+        default void onProtocolError(String clientId, String rawMessage, String errorMessage) {
+        }
     }
 
     public class TcpServerBinder extends Binder {
@@ -164,6 +185,7 @@ public class TcpServerService extends Service {
         mainHandler = new Handler(Looper.getMainLooper());
         deviceHistoryStore = DeviceHistoryStore.getInstance(this);
         deviceHistoryStore.markAllDevicesOffline();
+        protocolGateway = new ProtocolGateway(this, OptometryCommandProfile.getInstance());
         createNotificationChannel();
         acquireWakeLocks();
         initHeartbeatManager();
@@ -265,6 +287,119 @@ public class TcpServerService extends Service {
         if (device != null) {
             recordCommunication(device, DeviceHistoryStore.ACTION_SENT, message);
         }
+    }
+
+    @Nullable
+    public OutboundCommand sendCommandByCodeToClient(
+            @NonNull String clientId,
+            @NonNull String code,
+            @Nullable Map<String, String> arguments
+    ) {
+        if (protocolGateway == null) {
+            return null;
+        }
+        try {
+            return protocolGateway.sendCommand(code, arguments, rawMessage -> sendMessageToClient(clientId, rawMessage));
+        } catch (Exception exception) {
+            traceError("按编码定向发送失败，code=" + code + ", clientId=" + clientId, exception);
+            return null;
+        }
+    }
+
+    @Nullable
+    public OutboundCommand broadcastCommandByCode(
+            @NonNull String code,
+            @Nullable Map<String, String> arguments
+    ) {
+        if (protocolGateway == null) {
+            return null;
+        }
+        try {
+            return protocolGateway.sendCommand(code, arguments, this::broadcastMessage);
+        } catch (Exception exception) {
+            traceError("按编码广播发送失败，code=" + code, exception);
+            return null;
+        }
+    }
+
+    public void sendAckToClient(@NonNull String clientId, @NonNull AckMessage ackMessage) {
+        if (protocolGateway == null) {
+            return;
+        }
+        protocolGateway.sendAck(ackMessage, rawMessage -> sendMessageToClient(clientId, rawMessage));
+    }
+
+    public void broadcastAck(@NonNull AckMessage ackMessage) {
+        if (protocolGateway == null) {
+            return;
+        }
+        protocolGateway.sendAck(ackMessage, this::broadcastMessage);
+    }
+
+    @Nullable
+    public TransferProgress sendTransferBytesToClient(
+            @NonNull String clientId,
+            @NonNull TransferMetadata metadata,
+            @NonNull byte[] payload,
+            @Nullable TransferProgressListener listener
+    ) {
+        if (protocolGateway == null) {
+            return null;
+        }
+        return protocolGateway.sendTransferBytes(metadata, payload, rawMessage -> sendMessageToClient(clientId, rawMessage), listener);
+    }
+
+    @Nullable
+    public TransferProgress sendTransferFileToClient(
+            @NonNull String clientId,
+            @NonNull TransferMetadata metadata,
+            @NonNull File file,
+            @Nullable TransferProgressListener listener
+    ) throws IOException {
+        if (protocolGateway == null) {
+            return null;
+        }
+        return protocolGateway.sendTransferFile(metadata, file, rawMessage -> sendMessageToClient(clientId, rawMessage), listener);
+    }
+
+    @Nullable
+    public StreamSender createStreamSender(@NonNull StreamMetadata metadata) {
+        if (protocolGateway == null) {
+            return null;
+        }
+        return protocolGateway.createStreamSender(metadata);
+    }
+
+    @Nullable
+    public StreamStats sendStreamPayloadToClient(
+            @NonNull String clientId,
+            @NonNull StreamSender streamSender,
+            @NonNull byte[] payload,
+            @Nullable StreamStatsListener listener
+    ) {
+        if (protocolGateway == null) {
+            return null;
+        }
+        return protocolGateway.sendStreamPayload(streamSender, payload, rawMessage -> sendMessageToClient(clientId, rawMessage), listener);
+    }
+
+    @Nullable
+    public StreamStats finishStreamToClient(
+            @NonNull String clientId,
+            @NonNull StreamSender streamSender,
+            @Nullable StreamStatsListener listener
+    ) {
+        if (protocolGateway == null) {
+            return null;
+        }
+        return protocolGateway.finishStream(streamSender, rawMessage -> sendMessageToClient(clientId, rawMessage), listener);
+    }
+
+    public void sendStreamFrameToClient(@NonNull String clientId, @NonNull StreamFrame streamFrame) {
+        if (protocolGateway == null) {
+            return;
+        }
+        protocolGateway.sendStreamFrame(streamFrame, rawMessage -> sendMessageToClient(clientId, rawMessage));
     }
 
     public void broadcastMessage(String message) {
@@ -431,6 +566,7 @@ public class TcpServerService extends Service {
                         + ", length=" + (message == null ? 0 : message.length()));
                 recordCommunication(device, DeviceHistoryStore.ACTION_RECEIVED, message);
 
+                dispatchProtocolEvent(device.getDeviceId(), message);
                 postToListeners(listener -> listener.onMessageReceived(device.getDeviceId(), message));
             }
         });
@@ -767,6 +903,17 @@ public class TcpServerService extends Service {
         NotificationManager manager = getSystemService(NotificationManager.class);
         if (manager != null) {
             manager.notify(NOTIFICATION_ID, createNotification(content));
+        }
+    }
+
+    private void dispatchProtocolEvent(@NonNull String clientId, @Nullable String rawMessage) {
+        if (protocolGateway == null) {
+            return;
+        }
+        ProtocolInboundEvent event = protocolGateway.resolveInbound(rawMessage);
+        postToListeners(listener -> listener.onProtocolEvent(clientId, event));
+        if (event.isInvalid()) {
+            postToListeners(listener -> listener.onProtocolError(clientId, event.getRawMessage(), event.getErrorMessage()));
         }
     }
 

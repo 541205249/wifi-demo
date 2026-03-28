@@ -56,36 +56,31 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
         @Override
         public void onMessageReceived(String clientId, String message) {
             trace("服务回调收到模块消息，clientId=" + clientId + ", 长度=" + (message == null ? 0 : message.length()));
-            clinicViewModel.appendDeviceConsole("收到 " + clientId + " 的消息: " + message);
-            clinicViewModel.refreshDeviceState();
+            appendConsoleAndRefresh("收到 " + clientId + " 的消息: " + message);
         }
 
         @Override
         public void onClientConnected(String clientId) {
             trace("服务回调模块接入，clientId=" + clientId);
-            clinicViewModel.appendDeviceConsole("模块已连接: " + clientId);
-            clinicViewModel.refreshDeviceState();
+            appendConsoleAndRefresh("模块已连接: " + clientId);
         }
 
         @Override
         public void onClientIdentityResolved(String clientId, String macAddress) {
             trace("服务回调模块身份已解析，clientId=" + clientId + ", mac=" + macAddress);
-            clinicViewModel.appendDeviceConsole("已识别模块身份: " + macAddress + " [" + clientId + "]");
-            clinicViewModel.refreshDeviceState();
+            appendConsoleAndRefresh("已识别模块身份: " + macAddress + " [" + clientId + "]");
         }
 
         @Override
         public void onClientDisconnected(String clientId) {
             trace("服务回调模块断开，clientId=" + clientId);
-            clinicViewModel.appendDeviceConsole("模块已断开: " + clientId);
-            clinicViewModel.refreshDeviceState();
+            appendConsoleAndRefresh("模块已断开: " + clientId);
         }
 
         @Override
         public void onError(String error) {
             trace("服务回调出现错误: " + error);
-            clinicViewModel.appendDeviceConsole("通信错误: " + error);
-            clinicViewModel.refreshDeviceState();
+            appendConsoleAndRefresh("通信错误: " + error);
         }
 
         @Override
@@ -95,10 +90,9 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
             }
             trace("服务回调监听已启动，地址=" + (TextUtils.isEmpty(ipAddress) ? getLocalIpAddress() : ipAddress)
                     + ":" + ServerConstance.SERVER_PORT);
-            clinicViewModel.appendDeviceConsole("监听服务运行中，地址: "
+            appendConsoleAndRefresh("监听服务运行中，地址: "
                     + (TextUtils.isEmpty(getLocalIpAddress()) ? "未获取" : getLocalIpAddress())
                     + ":" + ServerConstance.SERVER_PORT);
-            clinicViewModel.refreshDeviceState();
         }
     };
 
@@ -254,6 +248,11 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
             return;
         }
         tcpServerService.registerOnMessageListener(serviceMessageListener);
+    }
+
+    private void appendConsoleAndRefresh(String consoleMessage) {
+        clinicViewModel.appendDeviceConsole(consoleMessage);
+        clinicViewModel.refreshDeviceState();
     }
 
     private void checkNotificationPermission() {

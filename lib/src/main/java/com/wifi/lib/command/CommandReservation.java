@@ -19,8 +19,6 @@ public final class CommandReservation {
     @NonNull
     private final String codeExplanation;
     @NonNull
-    private final CommandDirection direction;
-    @NonNull
     private final String description;
 
     public CommandReservation(
@@ -29,7 +27,6 @@ public final class CommandReservation {
             @NonNull String subModuleName,
             @NonNull String actionName,
             @NonNull String codeExplanation,
-            @NonNull CommandDirection direction,
             @NonNull String description
     ) {
         this.code = CommandCode.of(code);
@@ -37,7 +34,6 @@ public final class CommandReservation {
         this.subModuleName = normalize(subModuleName);
         this.actionName = normalize(actionName);
         this.codeExplanation = normalize(codeExplanation);
-        this.direction = direction == null ? CommandDirection.BIDIRECTIONAL : direction;
         this.description = normalize(description);
     }
 
@@ -73,7 +69,7 @@ public final class CommandReservation {
 
     @NonNull
     public CommandDirection getDirection() {
-        return direction;
+        return code.getDirection();
     }
 
     @NonNull

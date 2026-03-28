@@ -25,8 +25,6 @@ public final class CommandDefinition {
     @NonNull
     private final String codeExplanation;
     @NonNull
-    private final CommandDirection direction;
-    @NonNull
     private final String sendCommand;
     @NonNull
     private final String receiveCommand;
@@ -49,7 +47,6 @@ public final class CommandDefinition {
             @NonNull String subModuleName,
             @NonNull String actionName,
             @Nullable String codeExplanation,
-            @NonNull CommandDirection direction,
             @Nullable String sendCommand,
             @Nullable String receiveCommand,
             @NonNull CommandMatchMode receiveMatchMode,
@@ -64,7 +61,6 @@ public final class CommandDefinition {
         this.subModuleName = normalize(subModuleName);
         this.actionName = normalize(actionName);
         this.codeExplanation = normalize(codeExplanation);
-        this.direction = direction == null ? CommandDirection.BIDIRECTIONAL : direction;
         this.sendCommand = normalize(sendCommand);
         this.receiveCommand = normalize(receiveCommand);
         this.receiveMatchMode = receiveMatchMode == null ? CommandMatchMode.EXACT : receiveMatchMode;
@@ -120,7 +116,7 @@ public final class CommandDefinition {
 
     @NonNull
     public CommandDirection getDirection() {
-        return direction;
+        return code.getDirection();
     }
 
     @NonNull
@@ -162,20 +158,14 @@ public final class CommandDefinition {
     }
 
     public boolean isOutboundConfigured() {
-        return direction.supportsOutbound() && !TextUtils.isEmpty(sendCommand);
+        return getDirection().supportsOutbound() && !TextUtils.isEmpty(sendCommand);
     }
 
     public boolean isInboundConfigured() {
-        return direction.supportsInbound() && !TextUtils.isEmpty(receiveCommand);
+        return getDirection().supportsInbound() && !TextUtils.isEmpty(receiveCommand);
     }
 
     public boolean isConfigured() {
-        if (direction == CommandDirection.OUTBOUND) {
-            return isOutboundConfigured();
-        }
-        if (direction == CommandDirection.INBOUND) {
-            return isInboundConfigured();
-        }
         return isOutboundConfigured() || isInboundConfigured();
     }
 

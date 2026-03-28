@@ -30,7 +30,21 @@ import java.util.Locale;
 
 public class ClinicRepository extends BaseRepository {
     private static final String TAG = "ClinicRepository";
+    private static final String FUNCTION_KEY_NPC = "npc";
+    private static final String FUNCTION_KEY_NPA = "npa";
+    private static final String FUNCTION_KEY_NRA = "nra";
+    private static final String FUNCTION_KEY_PRA = "pra";
+    private static final String FUNCTION_KEY_ACA_BI = "aca_bi";
+    private static final String FUNCTION_KEY_ACA_TARGET = "aca_target";
+    private static final String FUNCTION_KEY_AMP_RIGHT = "amp_right";
+    private static final String FUNCTION_KEY_AMP_LEFT = "amp_left";
+    private static final String FUNCTION_NOTE_KEY_ACA = "aca";
+    private static final String FUNCTION_NOTE_KEY_AMP = "amp";
     private static volatile ClinicRepository instance;
+
+    private interface DeviceUiStateChange {
+        void apply(DeviceUiState state);
+    }
 
     private final MutableLiveData<List<PatientProfile>> patientListLiveData = new MutableLiveData<>();
     private final MutableLiveData<List<PatientProfile>> patientSearchLiveData = new MutableLiveData<>();
@@ -298,21 +312,21 @@ public class ClinicRepository extends BaseRepository {
         ExamSession session = requireSession();
         FunctionalTestState tests = session.getFunctionalTests();
         double direction = increase ? 1d : -1d;
-        if ("npc".equals(key)) {
+        if (FUNCTION_KEY_NPC.equals(key)) {
             tests.setNpc(Math.max(0, tests.getNpc() + direction));
-        } else if ("npa".equals(key)) {
+        } else if (FUNCTION_KEY_NPA.equals(key)) {
             tests.setNpa(Math.max(0, tests.getNpa() + direction));
-        } else if ("nra".equals(key)) {
+        } else if (FUNCTION_KEY_NRA.equals(key)) {
             tests.setNra(tests.getNra() + direction * 0.25d);
-        } else if ("pra".equals(key)) {
+        } else if (FUNCTION_KEY_PRA.equals(key)) {
             tests.setPra(Math.min(0, tests.getPra() + direction * 0.25d));
-        } else if ("aca_bi".equals(key)) {
+        } else if (FUNCTION_KEY_ACA_BI.equals(key)) {
             tests.setAcaBi(Math.max(0, tests.getAcaBi() + direction * 0.5d));
-        } else if ("aca_target".equals(key)) {
+        } else if (FUNCTION_KEY_ACA_TARGET.equals(key)) {
             tests.setAcaTarget(Math.max(0, tests.getAcaTarget() + direction * 0.5d));
-        } else if ("amp_right".equals(key)) {
+        } else if (FUNCTION_KEY_AMP_RIGHT.equals(key)) {
             tests.setAmpRight(Math.max(0, tests.getAmpRight() + direction));
-        } else if ("amp_left".equals(key)) {
+        } else if (FUNCTION_KEY_AMP_LEFT.equals(key)) {
             tests.setAmpLeft(Math.max(0, tests.getAmpLeft() + direction));
         }
         sessionLiveData.setValue(session);
@@ -324,13 +338,13 @@ public class ClinicRepository extends BaseRepository {
         ExamSession session = requireSession();
         FunctionalTestState tests = session.getFunctionalTests();
         String note = label + " " + ClinicFormatters.formatTimestamp(System.currentTimeMillis());
-        if ("nra".equals(key)) {
+        if (FUNCTION_KEY_NRA.equals(key)) {
             tests.setNraNote(note);
-        } else if ("pra".equals(key)) {
+        } else if (FUNCTION_KEY_PRA.equals(key)) {
             tests.setPraNote(note);
-        } else if ("aca".equals(key)) {
+        } else if (FUNCTION_NOTE_KEY_ACA.equals(key)) {
             tests.setAcaNote(note);
-        } else if ("amp".equals(key)) {
+        } else if (FUNCTION_NOTE_KEY_AMP.equals(key)) {
             tests.setAmpNote(note);
         }
         sessionLiveData.setValue(session);
@@ -441,53 +455,50 @@ public class ClinicRepository extends BaseRepository {
     }
 
     public void updateServerState(boolean running, String ipAddress) {
-        DeviceUiState state = requireDeviceState();
-        state.setServerRunning(running);
-        state.setLocalIp(ipAddress);
-        deviceUiStateLiveData.setValue(state);
-        trace("设备服务状态已同步，running=" + running + ", ip=" + ipAddress);
+        updateDeviceUiState(state -> {
+            state.setServerRunning(running);
+            state.setLocalIp(ipAddress);
+        }, "设备服务状态已同步，running=" + running + ", ip=" + ipAddress);
     }
 
     public void setPendingDeviceMessage(String message) {
-        DeviceUiState state = requireDeviceState();
-        state.setPendingMessage(message);
-        deviceUiStateLiveData.setValue(state);
-        trace("待发送消息已更新，length=" + (message == null ? 0 : message.length()));
+        updateDeviceUiState(
+                state -> state.setPendingMessage(message),
+                "待发送消息已更新，length=" + (message == null ? 0 : message.length())
+        );
     }
 
     public void selectConnectedDevice(String clientId) {
-        DeviceUiState state = requireDeviceState();
-        state.setSelectedClientId(clientId);
-        deviceUiStateLiveData.setValue(state);
-        trace("当前在线模块已切换，clientId=" + clientId);
+        updateDeviceUiState(
+                state -> state.setSelectedClientId(clientId),
+                "当前在线模块已切换，clientId=" + clientId
+        );
     }
 
     public void updateConnectedDevices(List<ConnectedDeviceInfo> devices) {
-        DeviceUiState state = requireDeviceState();
-        state.getConnectedDevices().clear();
-        state.getConnectedDevices().addAll(devices);
-        if (TextUtils.isEmpty(state.getSelectedClientId()) && !devices.isEmpty()) {
-            state.setSelectedClientId(devices.get(0).getClientId());
-        }
-        deviceUiStateLiveData.setValue(state);
-        trace("在线模块列表已更新，count=" + devices.size());
+        updateDeviceUiState(state -> {
+            state.getConnectedDevices().clear();
+            state.getConnectedDevices().addAll(devices);
+            if (TextUtils.isEmpty(state.getSelectedClientId()) && !devices.isEmpty()) {
+                state.setSelectedClientId(devices.get(0).getClientId());
+            }
+        }, "在线模块列表已更新，count=" + devices.size());
     }
 
     public void updateKnownDevices(List<KnownDeviceSummary> devices) {
-        DeviceUiState state = requireDeviceState();
-        state.getKnownDevices().clear();
-        state.getKnownDevices().addAll(devices);
-        deviceUiStateLiveData.setValue(state);
-        trace("已建档模块列表已更新，count=" + devices.size());
+        updateDeviceUiState(state -> {
+            state.getKnownDevices().clear();
+            state.getKnownDevices().addAll(devices);
+        }, "已建档模块列表已更新，count=" + devices.size());
     }
 
     public void appendDeviceLog(String line) {
-        DeviceUiState state = requireDeviceState();
-        state.getLogs().add(0, line);
-        while (state.getLogs().size() > 120) {
-            state.getLogs().remove(state.getLogs().size() - 1);
-        }
-        deviceUiStateLiveData.setValue(state);
+        updateDeviceUiState(state -> {
+            state.getLogs().add(0, line);
+            while (state.getLogs().size() > 120) {
+                state.getLogs().remove(state.getLogs().size() - 1);
+            }
+        }, null);
     }
 
     private void rebuildDerivedData() {
@@ -664,6 +675,15 @@ public class ClinicRepository extends BaseRepository {
             deviceUiStateLiveData.setValue(state);
         }
         return state;
+    }
+
+    private void updateDeviceUiState(DeviceUiStateChange change, String traceMessage) {
+        DeviceUiState state = requireDeviceState();
+        change.apply(state);
+        deviceUiStateLiveData.setValue(state);
+        if (!TextUtils.isEmpty(traceMessage)) {
+            trace(traceMessage);
+        }
     }
 
     private ExamSession requireSession() {

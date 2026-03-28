@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -53,7 +52,6 @@ public final class CommandCatalog {
     public ValidationResult validate(@NonNull CommandTable commandTable) {
         List<String> missingCodes = new ArrayList<>();
         List<String> unexpectedCodes = new ArrayList<>();
-        List<String> directionMismatches = new ArrayList<>();
         List<String> unconfiguredCodes = new ArrayList<>();
 
         for (CommandReservation reservation : reservations) {
@@ -61,15 +59,6 @@ public final class CommandCatalog {
             if (definition == null) {
                 missingCodes.add(reservation.getCodeValue());
                 continue;
-            }
-            if (definition.getDirection() != reservation.getDirection()) {
-                directionMismatches.add(String.format(
-                        Locale.getDefault(),
-                        "%s 预期=%s, 实际=%s",
-                        reservation.getCodeValue(),
-                        reservation.getDirection().getLabel(),
-                        definition.getDirection().getLabel()
-                ));
             }
             if (!definition.isConfigured()) {
                 unconfiguredCodes.add(definition.getCodeValue());
@@ -86,7 +75,6 @@ public final class CommandCatalog {
         ValidationResult result = new ValidationResult(
                 missingCodes,
                 unexpectedCodes,
-                directionMismatches,
                 unconfiguredCodes
         );
         DLog.i(TAG, "编码表校验完成: " + result.buildSummary());
@@ -103,7 +91,6 @@ public final class CommandCatalog {
                 @NonNull String subModuleName,
                 @NonNull String actionName,
                 @NonNull String codeExplanation,
-                @NonNull CommandDirection direction,
                 @NonNull String description
         ) {
             reservations.add(new CommandReservation(
@@ -112,7 +99,6 @@ public final class CommandCatalog {
                     subModuleName,
                     actionName,
                     codeExplanation,
-                    direction,
                     description
             ));
             return this;
@@ -131,7 +117,6 @@ public final class CommandCatalog {
                     subModuleName,
                     actionName,
                     moduleName + "/" + subModuleName + "/" + actionName,
-                    CommandDirection.BIDIRECTIONAL,
                     ""
             );
         }
@@ -142,7 +127,6 @@ public final class CommandCatalog {
                 @NonNull String moduleName,
                 @NonNull String subModuleName,
                 @NonNull String actionName,
-                @NonNull CommandDirection direction,
                 @NonNull String description
         ) {
             return addReservation(
@@ -151,7 +135,6 @@ public final class CommandCatalog {
                     subModuleName,
                     actionName,
                     moduleName + "/" + subModuleName + "/" + actionName,
-                    direction,
                     description
             );
         }
@@ -168,26 +151,21 @@ public final class CommandCatalog {
         @NonNull
         private final List<String> unexpectedCodes;
         @NonNull
-        private final List<String> directionMismatches;
-        @NonNull
         private final List<String> unconfiguredCodes;
 
         private ValidationResult(
                 @NonNull List<String> missingCodes,
                 @NonNull List<String> unexpectedCodes,
-                @NonNull List<String> directionMismatches,
                 @NonNull List<String> unconfiguredCodes
         ) {
             this.missingCodes = Collections.unmodifiableList(new ArrayList<>(missingCodes));
             this.unexpectedCodes = Collections.unmodifiableList(new ArrayList<>(unexpectedCodes));
-            this.directionMismatches = Collections.unmodifiableList(new ArrayList<>(directionMismatches));
             this.unconfiguredCodes = Collections.unmodifiableList(new ArrayList<>(unconfiguredCodes));
         }
 
         public boolean hasIssues() {
             return !missingCodes.isEmpty()
-                    || !unexpectedCodes.isEmpty()
-                    || !directionMismatches.isEmpty();
+                    || !unexpectedCodes.isEmpty();
         }
 
         public boolean hasUnconfiguredCodes() {
@@ -205,11 +183,6 @@ public final class CommandCatalog {
         }
 
         @NonNull
-        public List<String> getDirectionMismatches() {
-            return directionMismatches;
-        }
-
-        @NonNull
         public List<String> getUnconfiguredCodes() {
             return unconfiguredCodes;
         }
@@ -218,7 +191,6 @@ public final class CommandCatalog {
         public String buildSummary() {
             return "missing=" + missingCodes.size()
                     + ", unexpected=" + unexpectedCodes.size()
-                    + ", directionMismatch=" + directionMismatches.size()
                     + ", unconfigured=" + unconfiguredCodes.size();
         }
     }
