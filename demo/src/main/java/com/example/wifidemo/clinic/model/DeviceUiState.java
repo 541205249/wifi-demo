@@ -64,4 +64,28 @@ public class DeviceUiState {
     public List<String> getLogs() {
         return logs;
     }
+
+    public void replaceConnectedDevices(List<ConnectedDeviceInfo> devices) {
+        connectedDevices.clear();
+        if (devices != null) {
+            connectedDevices.addAll(devices);
+        }
+    }
+
+    public void replaceKnownDevices(List<KnownDeviceSummary> devices) {
+        knownDevices.clear();
+        if (devices != null) {
+            knownDevices.addAll(devices);
+        }
+    }
+
+    public void appendLog(String line, int maxLogCount) {
+        if (line == null) {
+            return;
+        }
+        logs.add(0, line);
+        while (maxLogCount >= 0 && logs.size() > maxLogCount) {
+            logs.remove(logs.size() - 1);
+        }
+    }
 }

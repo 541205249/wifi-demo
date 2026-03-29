@@ -32,59 +32,46 @@ import java.util.Map;
 
 public class CommandSettingsActivity extends BaseMvvmActivity<ActivityCommandSettingsBinding, CommandSettingsViewModel> {
     private static final String TAG = "CommandSettingsAct";
+    private static final String[] TABLE_DOCUMENT_MIME_TYPES = {
+            "text/*",
+            "application/vnd.ms-excel",
+            "application/csv"
+    };
+    private static final String BROADCAST_TARGET_LABEL = "全部在线模块";
 
     private final List<String> connectedDeviceIds = new ArrayList<>();
     private final TcpServerService.OnMessageListener serviceMessageListener = new TcpServerService.OnMessageListener() {
         @Override
         public void onMessageReceived(String clientId, String message) {
-            runOnUiThread(() -> {
-                trace("收到模块原始消息，clientId=" + clientId + ", raw=" + message);
-                viewModel.onIncomingMessage(clientId, message);
-                updateClientList();
-            });
+            runOnUiThread(() -> handleServiceMessageReceived(clientId, message));
         }
 
         @Override
         public void onClientConnected(String clientId) {
-            runOnUiThread(() -> {
-                trace("模块接入，clientId=" + clientId);
-                updateServiceState();
-                updateClientList();
-            });
+            runOnUiThread(() -> handleServiceClientEvent("模块接入，clientId=" + clientId, true));
         }
 
         @Override
         public void onClientIdentityResolved(String clientId, String macAddress) {
-            runOnUiThread(() -> {
-                trace("模块身份已识别，clientId=" + clientId + ", mac=" + macAddress);
-                updateClientList();
-            });
+            runOnUiThread(() -> handleServiceClientEvent(
+                    "模块身份已识别，clientId=" + clientId + ", mac=" + macAddress,
+                    false
+            ));
         }
 
         @Override
         public void onClientDisconnected(String clientId) {
-            runOnUiThread(() -> {
-                trace("模块断开，clientId=" + clientId);
-                updateServiceState();
-                updateClientList();
-            });
+            runOnUiThread(() -> handleServiceClientEvent("模块断开，clientId=" + clientId, true));
         }
 
         @Override
         public void onError(String error) {
-            runOnUiThread(() -> {
-                trace("TCP 服务返回错误: " + error);
-                Toasty.showShort(error);
-                updateServiceState();
-            });
+            runOnUiThread(() -> handleServiceError(error));
         }
 
         @Override
         public void onServerStarted(String ipAddress) {
-            runOnUiThread(() -> {
-                trace("TCP 服务启动，ip=" + ipAddress);
-                updateServiceState();
-            });
+            runOnUiThread(() -> handleServerStarted(ipAddress));
         }
 
         @Override
@@ -242,7 +229,7 @@ public class CommandSettingsActivity extends BaseMvvmActivity<ActivityCommandSet
             Toasty.showShort("文档选择器尚未准备好");
             return;
         }
-        openDocumentLauncher.launch(new String[]{"text/*", "application/vnd.ms-excel", "application/csv"});
+        openDocumentLauncher.launch(TABLE_DOCUMENT_MIME_TYPES);
     }
 
     private void handleDocumentPicked(@Nullable Uri uri) {
@@ -270,6 +257,31 @@ public class CommandSettingsActivity extends BaseMvvmActivity<ActivityCommandSet
             return;
         }
         tcpServerService.registerOnMessageListener(serviceMessageListener);
+    }
+
+    private void handleServiceMessageReceived(@NonNull String clientId, @Nullable String message) {
+        trace("收到模块原始消息，clientId=" + clientId + ", raw=" + message);
+        viewModel.onIncomingMessage(clientId, message);
+        updateClientList();
+    }
+
+    private void handleServiceClientEvent(@NonNull String traceMessage, boolean refreshServiceState) {
+        trace(traceMessage);
+        if (refreshServiceState) {
+            updateServiceState();
+        }
+        updateClientList();
+    }
+
+    private void handleServiceError(@NonNull String error) {
+        trace("TCP 服务返回错误: " + error);
+        Toasty.showShort(error);
+        updateServiceState();
+    }
+
+    private void handleServerStarted(@Nullable String ipAddress) {
+        trace("TCP 服务启动，ip=" + ipAddress);
+        updateServiceState();
     }
 
     private void updateServiceState() {
@@ -318,17 +330,16 @@ public class CommandSettingsActivity extends BaseMvvmActivity<ActivityCommandSet
                 Toasty.showShort("按编码广播发送失败");
                 return;
             }
-            viewModel.onCommandSent("全部在线模块", outboundCommand);
+            viewModel.onCommandSent(BROADCAST_TARGET_LABEL, outboundCommand);
             return;
         }
 
-        int selectedPosition = binding.spinnerCommandClients.getSelectedItemPosition();
-        if (selectedPosition < 0 || selectedPosition >= connectedDeviceIds.size()) {
+        String clientId = resolveSelectedClientId();
+        if (clientId == null) {
             Toasty.showShort("请选择一个在线模块，或切换为广播发送");
             return;
         }
 
-        String clientId = connectedDeviceIds.get(selectedPosition);
         String targetLabel = tcpServerService.getDeviceDisplayLabel(clientId);
         outboundCommand = tcpServerService.sendCommandByCodeToClient(clientId, code, arguments);
         if (outboundCommand == null) {
@@ -336,6 +347,15 @@ public class CommandSettingsActivity extends BaseMvvmActivity<ActivityCommandSet
             return;
         }
         viewModel.onCommandSent(targetLabel, outboundCommand);
+    }
+
+    @Nullable
+    private String resolveSelectedClientId() {
+        int selectedPosition = binding.spinnerCommandClients.getSelectedItemPosition();
+        if (selectedPosition < 0 || selectedPosition >= connectedDeviceIds.size()) {
+            return null;
+        }
+        return connectedDeviceIds.get(selectedPosition);
     }
 
     private void trace(@NonNull String message) {

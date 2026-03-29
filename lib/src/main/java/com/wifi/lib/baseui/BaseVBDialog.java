@@ -7,6 +7,7 @@ import android.view.Window;
 import android.view.WindowManager;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatDialog;
 import androidx.viewbinding.ViewBinding;
 
@@ -27,7 +28,7 @@ public abstract class BaseVBDialog<VB extends ViewBinding> extends AppCompatDial
     }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         renderData();
     }
@@ -46,10 +47,7 @@ public abstract class BaseVBDialog<VB extends ViewBinding> extends AppCompatDial
 
     public void setShowBottomWithAnim() {
         setShowBottom();
-        Window window = getWindow();
-        if (window != null) {
-            window.setWindowAnimations(R.style.WifiLibBottomDialogAnimation);
-        }
+        applyBottomAnimation();
     }
 
     public void setShowPosition(int gravity) {
@@ -57,18 +55,34 @@ public abstract class BaseVBDialog<VB extends ViewBinding> extends AppCompatDial
         if (window == null) {
             return;
         }
+        applyWindowLayout(window, gravity);
+    }
+
+    private void init() {
+        binding = inflateBinding();
+        setContentView(binding.getRoot());
+        initWidgets();
+        bindListeners();
+    }
+
+    @NonNull
+    private VB inflateBinding() {
+        return ViewBindingReflector.inflate(this, getLayoutInflater());
+    }
+
+    private void applyBottomAnimation() {
+        Window window = getWindow();
+        if (window != null) {
+            window.setWindowAnimations(R.style.WifiLibBottomDialogAnimation);
+        }
+    }
+
+    private void applyWindowLayout(@NonNull Window window, int gravity) {
         window.setGravity(gravity);
         window.getDecorView().setPadding(0, 0, 0, 0);
         WindowManager.LayoutParams layoutParams = window.getAttributes();
         layoutParams.width = WindowManager.LayoutParams.MATCH_PARENT;
         layoutParams.height = WindowManager.LayoutParams.WRAP_CONTENT;
         window.setAttributes(layoutParams);
-    }
-
-    private void init() {
-        binding = ViewBindingReflector.inflate(this, getLayoutInflater());
-        setContentView(binding.getRoot());
-        initWidgets();
-        bindListeners();
     }
 }

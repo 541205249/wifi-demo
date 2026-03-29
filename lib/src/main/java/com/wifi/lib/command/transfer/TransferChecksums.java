@@ -19,13 +19,9 @@ public final class TransferChecksums {
 
     @NonNull
     public static String md5Hex(@NonNull byte[] payload) {
-        try {
-            MessageDigest messageDigest = MessageDigest.getInstance("MD5");
-            messageDigest.update(payload);
-            return toHex(messageDigest.digest());
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("当前环境不支持 MD5", exception);
-        }
+        MessageDigest messageDigest = createMd5Digest();
+        messageDigest.update(payload);
+        return toHex(messageDigest.digest());
     }
 
     @NonNull
@@ -44,17 +40,9 @@ public final class TransferChecksums {
 
     @NonNull
     private static String md5Hex(@NonNull InputStream inputStream) throws IOException {
-        try {
-            MessageDigest messageDigest = MessageDigest.getInstance("MD5");
-            byte[] buffer = new byte[BUFFER_SIZE];
-            int readCount;
-            while ((readCount = inputStream.read(buffer)) != -1) {
-                messageDigest.update(buffer, 0, readCount);
-            }
-            return toHex(messageDigest.digest());
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("当前环境不支持 MD5", exception);
-        }
+        MessageDigest messageDigest = createMd5Digest();
+        updateDigest(messageDigest, inputStream);
+        return toHex(messageDigest.digest());
     }
 
     @NonNull
@@ -64,5 +52,23 @@ public final class TransferChecksums {
             builder.append(String.format(Locale.ROOT, "%02x", value));
         }
         return builder.toString();
+    }
+
+    @NonNull
+    private static MessageDigest createMd5Digest() {
+        try {
+            return MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("当前环境不支持 MD5", exception);
+        }
+    }
+
+    private static void updateDigest(@NonNull MessageDigest messageDigest, @NonNull InputStream inputStream)
+            throws IOException {
+        byte[] buffer = new byte[BUFFER_SIZE];
+        int readCount;
+        while ((readCount = inputStream.read(buffer)) != -1) {
+            messageDigest.update(buffer, 0, readCount);
+        }
     }
 }

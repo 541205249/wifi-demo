@@ -24,14 +24,27 @@ public class BrvahDemoActivity extends BaseMvvmActivity<ActivityBrvahDemoBinding
 
     @Override
     protected void initWidgets(@Nullable Bundle savedInstanceState) {
+        initPageChrome();
+        initPagerTabs();
+    }
+
+    private void initPageChrome() {
         getStatusBarUI().setLightMode();
         getPageTitleUI().initIvBack();
         getPageTitleUI().initTitle("BRVAH 场景集");
         getPageTitleUI().initTvRight("说明", v -> showIntroDialog());
+    }
 
+    private void initPagerTabs() {
         binding.viewPager.setOffscreenPageLimit(1);
         binding.viewPager.setAdapter(new BrvahDemoPagerAdapter(this));
-        new TabLayoutMediator(binding.tabLayout, binding.viewPager,
+        attachTabTitles();
+    }
+
+    private void attachTabTitles() {
+        new TabLayoutMediator(
+                binding.tabLayout,
+                binding.viewPager,
                 (tab, position) -> tab.setText(BrvahDemoPagerAdapter.getPageTitle(position))
         ).attach();
     }

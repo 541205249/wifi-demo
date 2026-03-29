@@ -34,8 +34,7 @@ public class LogSettingsViewModel extends BaseViewModel {
 
     public void loadCurrentSettings() {
         DLogSettingsForm form = repository.loadEditableForm();
-        formLiveData.setValue(form);
-        appliedSummaryLiveData.setValue(repository.buildAppliedSummary(form));
+        publishAppliedForm(form);
         DLog.i(TAG, "加载当前 DLog 配置表单");
     }
 
@@ -43,8 +42,7 @@ public class LogSettingsViewModel extends BaseViewModel {
         DLogSettingsForm defaultForm = repository.loadDefaultForm();
         try {
             DLogSettingsForm appliedForm = repository.applyAndPersist(defaultForm);
-            formLiveData.setValue(appliedForm);
-            appliedSummaryLiveData.setValue(repository.buildAppliedSummary(appliedForm));
+            publishAppliedForm(appliedForm);
             dispatchMessage("已恢复默认配置并立即应用");
             DLog.i(TAG, "已恢复默认 DLog 配置并立即应用");
         } catch (IllegalArgumentException exception) {
@@ -57,8 +55,7 @@ public class LogSettingsViewModel extends BaseViewModel {
     public void applySettings(@NonNull DLogSettingsForm form) {
         try {
             DLogSettingsForm appliedForm = repository.applyAndPersist(form);
-            formLiveData.setValue(appliedForm);
-            appliedSummaryLiveData.setValue(repository.buildAppliedSummary(appliedForm));
+            publishAppliedForm(appliedForm);
             dispatchMessage("DLog 配置已保存并应用");
             DLog.i(TAG, "DLog 配置应用成功");
         } catch (IllegalArgumentException exception) {
@@ -74,5 +71,10 @@ public class LogSettingsViewModel extends BaseViewModel {
             return;
         }
         DLog.w(TAG, "日志导出失败: " + message);
+    }
+
+    private void publishAppliedForm(@NonNull DLogSettingsForm form) {
+        formLiveData.setValue(form);
+        appliedSummaryLiveData.setValue(repository.buildAppliedSummary(form));
     }
 }

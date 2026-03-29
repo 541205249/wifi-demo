@@ -3,6 +3,7 @@ package com.example.wifidemo.sample.ui;
 import android.content.Intent;
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.example.wifidemo.R;
@@ -18,28 +19,39 @@ import com.wifi.lib.baseui.BaseVBActivity;
 public class DemoHomeActivity extends BaseVBActivity<ActivityDemoHomeBinding> {
     @Override
     protected void initWidgets(@Nullable Bundle savedInstanceState) {
+        initPageChrome();
+        bindDemoEntries();
+    }
+
+    private void initPageChrome() {
         getStatusBarUI().setLightMode();
         getPageTitleUI().initTitle(getString(R.string.demo_home_title));
         getPageTitleUI().initTvRight(getString(R.string.demo_common_intro), v -> showIntroDialog());
+    }
 
+    private void bindDemoEntries() {
         binding.btnOpenMvvmDemo.setOnClickListener(v ->
-                startActivity(new Intent(this, DemoMvvmActivity.class))
+                openDemoPage(DemoMvvmActivity.class)
         );
         binding.btnOpenBrvahDemo.setOnClickListener(v ->
-                startActivity(new Intent(this, BrvahDemoActivity.class))
+                openDemoPage(BrvahDemoActivity.class)
         );
         binding.btnOpenNetworkDemo.setOnClickListener(v ->
-                startActivity(new Intent(this, NetworkDemoActivity.class))
+                openDemoPage(NetworkDemoActivity.class)
         );
         binding.btnOpenCommandSettings.setOnClickListener(v ->
-                startActivity(new Intent(this, CommandSettingsActivity.class))
+                openDemoPage(CommandSettingsActivity.class)
         );
         binding.btnOpenCommunicationDemo.setOnClickListener(v ->
-                startActivity(new Intent(this, CommunicationDemoActivity.class))
+                openDemoPage(CommunicationDemoActivity.class)
         );
         binding.btnOpenLogSettings.setOnClickListener(v ->
-                startActivity(new Intent(this, LogSettingsActivity.class))
+                openDemoPage(LogSettingsActivity.class)
         );
+    }
+
+    private void openDemoPage(@NonNull Class<?> activityClass) {
+        startActivity(new Intent(this, activityClass));
     }
 
     private void showIntroDialog() {

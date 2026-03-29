@@ -33,10 +33,8 @@ public class DeviceHistoryActivity extends BaseVBActivity<ActivityDeviceHistoryB
             return;
         }
 
-        setSupportActionBar(binding.topAppBar);
-        binding.topAppBar.setNavigationOnClickListener(v -> finish());
-        binding.topAppBar.setTitle("设备记录");
-        binding.rgFilter.setOnCheckedChangeListener((group, checkedId) -> renderHistory());
+        initPageChrome();
+        bindFilter();
         renderHistory();
     }
 
@@ -67,18 +65,36 @@ public class DeviceHistoryActivity extends BaseVBActivity<ActivityDeviceHistoryB
         return true;
     }
 
+    private void initPageChrome() {
+        setSupportActionBar(binding.topAppBar);
+        binding.topAppBar.setNavigationOnClickListener(v -> finish());
+        binding.topAppBar.setTitle("设备记录");
+    }
+
+    private void bindFilter() {
+        binding.rgFilter.setOnCheckedChangeListener((group, checkedId) -> renderHistory());
+    }
+
     private void renderHistory() {
         DeviceHistoryStore.DeviceSummary summary = deviceHistoryStore.getDeviceSummary(deviceId);
         if (summary == null) {
-            binding.tvDeviceTitle.setText(deviceId);
-            binding.tvDeviceSummary.setText("暂无该设备记录");
-            binding.tvLogs.setText("暂无记录");
+            renderEmptyHistory();
             return;
         }
 
+        renderSummary(summary);
+        renderLogs(deviceHistoryStore.getLogs(deviceId, resolveFilter()));
+    }
+
+    private void renderEmptyHistory() {
+        binding.tvDeviceTitle.setText(deviceId);
+        binding.tvDeviceSummary.setText("暂无该设备记录");
+        binding.tvLogs.setText("暂无记录");
+    }
+
+    private void renderSummary(DeviceHistoryStore.DeviceSummary summary) {
         binding.tvDeviceTitle.setText(summary.getPrimaryLabel());
         binding.tvDeviceSummary.setText(buildSummaryText(summary));
-        binding.tvLogs.setText(buildLogText(deviceHistoryStore.getLogs(deviceId, resolveFilter())));
     }
 
     private DeviceHistoryStore.LogFilter resolveFilter() {
@@ -125,6 +141,10 @@ public class DeviceHistoryActivity extends BaseVBActivity<ActivityDeviceHistoryB
                 .append(summary.getConnectionCount())
                 .append(" 条");
         return builder.toString();
+    }
+
+    private void renderLogs(List<DeviceHistoryStore.DeviceLogEntry> logs) {
+        binding.tvLogs.setText(buildLogText(logs));
     }
 
     private String buildLogText(List<DeviceHistoryStore.DeviceLogEntry> logs) {

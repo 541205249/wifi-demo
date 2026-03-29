@@ -28,6 +28,24 @@ public class ExamSession {
         POLAR
     }
 
+    public enum LensDataSource {
+        LM,
+        AR,
+        SUBJECTIVE,
+        UNAIDED,
+        FINAL
+    }
+
+    public enum ToolType {
+        NONE,
+        NPC,
+        NPA,
+        NRA,
+        PRA,
+        ACA,
+        AMP
+    }
+
     private PatientProfile patient;
     private String currentProgramId;
     private int currentStepIndex;
@@ -37,10 +55,13 @@ public class ExamSession {
     private EyeSelection lensVisibility;
     private DistanceMode distanceMode;
     private PrismMode prismMode;
+    private LensDataSource lensDataSource;
+    private ToolType activeTool;
     private boolean cylMinusMode;
     private boolean cpLinked;
     private boolean lensInserted;
     private boolean shiftEnabled;
+    private boolean unsavedChanges;
     private String note;
     private final LensMeasurement farRight = new LensMeasurement();
     private final LensMeasurement farLeft = new LensMeasurement();
@@ -122,6 +143,22 @@ public class ExamSession {
         this.prismMode = prismMode;
     }
 
+    public LensDataSource getLensDataSource() {
+        return lensDataSource;
+    }
+
+    public void setLensDataSource(LensDataSource lensDataSource) {
+        this.lensDataSource = lensDataSource;
+    }
+
+    public ToolType getActiveTool() {
+        return activeTool;
+    }
+
+    public void setActiveTool(ToolType activeTool) {
+        this.activeTool = activeTool;
+    }
+
     public boolean isCylMinusMode() {
         return cylMinusMode;
     }
@@ -152,6 +189,14 @@ public class ExamSession {
 
     public void setShiftEnabled(boolean shiftEnabled) {
         this.shiftEnabled = shiftEnabled;
+    }
+
+    public boolean isUnsavedChanges() {
+        return unsavedChanges;
+    }
+
+    public void setUnsavedChanges(boolean unsavedChanges) {
+        this.unsavedChanges = unsavedChanges;
     }
 
     public String getNote() {

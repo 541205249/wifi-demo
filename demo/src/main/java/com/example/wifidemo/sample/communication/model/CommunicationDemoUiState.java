@@ -1,6 +1,7 @@
 package com.example.wifidemo.sample.communication.model;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 public final class CommunicationDemoUiState {
     @NonNull
@@ -18,20 +19,20 @@ public final class CommunicationDemoUiState {
     private final boolean lastSuccess;
 
     public CommunicationDemoUiState(
-            @NonNull String statusText,
-            @NonNull String scenarioTitle,
-            @NonNull String meaningText,
-            @NonNull String exampleText,
-            @NonNull String flowText,
-            @NonNull String consoleText,
+            @Nullable String statusText,
+            @Nullable String scenarioTitle,
+            @Nullable String meaningText,
+            @Nullable String exampleText,
+            @Nullable String flowText,
+            @Nullable String consoleText,
             boolean lastSuccess
     ) {
-        this.statusText = statusText == null ? "" : statusText;
-        this.scenarioTitle = scenarioTitle == null ? "" : scenarioTitle;
-        this.meaningText = meaningText == null ? "" : meaningText;
-        this.exampleText = exampleText == null ? "" : exampleText;
-        this.flowText = flowText == null ? "" : flowText;
-        this.consoleText = consoleText == null ? "" : consoleText;
+        this.statusText = normalize(statusText);
+        this.scenarioTitle = normalize(scenarioTitle);
+        this.meaningText = normalize(meaningText);
+        this.exampleText = normalize(exampleText);
+        this.flowText = normalize(flowText);
+        this.consoleText = normalize(consoleText);
         this.lastSuccess = lastSuccess;
     }
 
@@ -67,5 +68,10 @@ public final class CommunicationDemoUiState {
 
     public boolean isLastSuccess() {
         return lastSuccess;
+    }
+
+    @NonNull
+    private static String normalize(@Nullable String value) {
+        return value == null ? "" : value;
     }
 }

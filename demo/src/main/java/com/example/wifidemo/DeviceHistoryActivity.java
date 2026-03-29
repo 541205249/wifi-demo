@@ -37,13 +37,8 @@ public class DeviceHistoryActivity extends AppCompatActivity {
         }
 
         initViews();
-        setupListeners();
-
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("设备记录");
-        }
-
+        initPageChrome();
+        bindFilter();
         renderHistory();
     }
 
@@ -66,22 +61,37 @@ public class DeviceHistoryActivity extends AppCompatActivity {
         tvLogs = findViewById(R.id.tvLogs);
     }
 
-    private void setupListeners() {
+    private void initPageChrome() {
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle("设备记录");
+        }
+    }
+
+    private void bindFilter() {
         rgFilter.setOnCheckedChangeListener((group, checkedId) -> renderHistory());
     }
 
     private void renderHistory() {
         DeviceHistoryStore.DeviceSummary summary = deviceHistoryStore.getDeviceSummary(deviceId);
         if (summary == null) {
-            tvDeviceTitle.setText(deviceId);
-            tvDeviceSummary.setText("暂无该设备记录");
-            tvLogs.setText("暂无记录");
+            renderEmptyHistory();
             return;
         }
 
+        renderSummary(summary);
+        renderLogs(deviceHistoryStore.getLogs(deviceId, resolveFilter()));
+    }
+
+    private void renderEmptyHistory() {
+        tvDeviceTitle.setText(deviceId);
+        tvDeviceSummary.setText("暂无该设备记录");
+        tvLogs.setText("暂无记录");
+    }
+
+    private void renderSummary(DeviceHistoryStore.DeviceSummary summary) {
         tvDeviceTitle.setText(summary.getPrimaryLabel());
         tvDeviceSummary.setText(buildSummaryText(summary));
-        tvLogs.setText(buildLogText(deviceHistoryStore.getLogs(deviceId, resolveFilter())));
     }
 
     private DeviceHistoryStore.LogFilter resolveFilter() {
@@ -128,6 +138,10 @@ public class DeviceHistoryActivity extends AppCompatActivity {
                 .append(summary.getConnectionCount())
                 .append(" 条");
         return builder.toString();
+    }
+
+    private void renderLogs(List<DeviceHistoryStore.DeviceLogEntry> logs) {
+        tvLogs.setText(buildLogText(logs));
     }
 
     private String buildLogText(List<DeviceHistoryStore.DeviceLogEntry> logs) {

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Android Java 交付"
+  short_description: "面向当前仓库的 Android Java/XML/ViewBinding 开发、构建排错和交付护栏"
+  default_prompt: "使用 $android-java-delivery 处理当前 Android 任务，先按当前仓库的 Java 11、XML/ViewBinding、多模块和设备通信边界约束判断影响范围、验证命令和实现方式，再执行最小且可验证的改动。"
+
+policy:
+  allow_implicit_invocation: true

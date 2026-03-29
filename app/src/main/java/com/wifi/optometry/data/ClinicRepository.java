@@ -64,6 +64,7 @@ public class ClinicRepository extends BaseRepository {
         List<ExamProgram> programs = ExamSeedData.createPrograms();
         ClinicSettings settings = ExamSeedData.createSettings();
         ExamSession session = ExamSeedData.createInitialSession(patients.isEmpty() ? null : patients.get(0));
+        applyCurrentStepState(session, ExamWorkflowEngine.getCurrentStep(session, programs));
 
         patientListLiveData.setValue(patients);
         patientSearchLiveData.setValue(new ArrayList<>(patients));
@@ -220,6 +221,13 @@ public class ClinicRepository extends BaseRepository {
         trace("已切换验光字段，field=" + field);
     }
 
+    public void setLensDataSource(ExamSession.LensDataSource dataSource) {
+        ExamSession session = requireSession();
+        session.setLensDataSource(dataSource);
+        sessionLiveData.setValue(session);
+        trace("已切换数据来源，dataSource=" + dataSource);
+    }
+
     public void setActiveEye(ExamSession.EyeSelection selection) {
         ExamSession session = requireSession();
         session.setActiveEye(selection);
@@ -232,6 +240,13 @@ public class ClinicRepository extends BaseRepository {
         session.setLensVisibility(selection);
         sessionLiveData.setValue(session);
         trace("已切换镜片显示范围，selection=" + selection);
+    }
+
+    public void setActiveTool(ExamSession.ToolType toolType) {
+        ExamSession session = requireSession();
+        session.setActiveTool(toolType == null ? ExamSession.ToolType.NONE : toolType);
+        sessionLiveData.setValue(session);
+        trace("已切换底部工具，tool=" + session.getActiveTool());
     }
 
     public void toggleDistanceMode() {
@@ -258,6 +273,7 @@ public class ClinicRepository extends BaseRepository {
         normalizeCylinderSign(session.getFarLeft(), session.isCylMinusMode());
         normalizeCylinderSign(session.getNearRight(), session.isCylMinusMode());
         normalizeCylinderSign(session.getNearLeft(), session.isCylMinusMode());
+        markSessionDirty(session);
         sessionLiveData.setValue(session);
         rebuildDerivedData();
         trace("已切换柱镜记法，minusMode=" + session.isCylMinusMode());
@@ -273,6 +289,7 @@ public class ClinicRepository extends BaseRepository {
     public void toggleLensInserted() {
         ExamSession session = requireSession();
         session.setLensInserted(!session.isLensInserted());
+        markSessionDirty(session);
         sessionLiveData.setValue(session);
         trace("已切换镜片插入状态，inserted=" + session.isLensInserted());
     }
@@ -287,6 +304,7 @@ public class ClinicRepository extends BaseRepository {
     public void toggleNearLamp() {
         ExamSession session = requireSession();
         session.getFunctionalTests().setNearLampOn(!session.getFunctionalTests().isNearLampOn());
+        markSessionDirty(session);
         sessionLiveData.setValue(session);
         rebuildDerivedData();
         trace("已切换近用灯状态，enabled=" + session.getFunctionalTests().isNearLampOn());
@@ -300,12 +318,33 @@ public class ClinicRepository extends BaseRepository {
             delta = -delta;
         }
         applyMeasurementDelta(session, delta);
+        markSessionDirty(session);
         sessionLiveData.setValue(session);
         rebuildDerivedData();
         trace("验光值调整完成，field=" + session.getSelectedField()
                 + ", delta=" + delta
                 + ", eye=" + session.getActiveEye()
                 + ", mode=" + session.getDistanceMode());
+    }
+
+    public void clearSelectedMeasurement() {
+        ExamSession session = requireSession();
+        if (session.getSelectedField() == null) {
+            return;
+        }
+        if (session.getActiveEye() == ExamSession.EyeSelection.RIGHT
+                || session.getActiveEye() == ExamSession.EyeSelection.BOTH) {
+            clearMeasurement(session, session.getDistanceMode(), session.getFarRight(), session.getNearRight());
+        }
+        if (session.getActiveEye() == ExamSession.EyeSelection.LEFT
+                || session.getActiveEye() == ExamSession.EyeSelection.BOTH) {
+            clearMeasurement(session, session.getDistanceMode(), session.getFarLeft(), session.getNearLeft());
+        }
+        syncFinalPrescription(session);
+        markSessionDirty(session);
+        sessionLiveData.setValue(session);
+        rebuildDerivedData();
+        trace("当前验光字段已清空，field=" + session.getSelectedField() + ", eye=" + session.getActiveEye());
     }
 
     public void adjustFunctionalValue(String key, boolean increase) {
@@ -329,6 +368,7 @@ public class ClinicRepository extends BaseRepository {
         } else if (FUNCTION_KEY_AMP_LEFT.equals(key)) {
             tests.setAmpLeft(Math.max(0, tests.getAmpLeft() + direction));
         }
+        markSessionDirty(session);
         sessionLiveData.setValue(session);
         rebuildDerivedData();
         trace("视功能数值调整完成，key=" + key + ", increase=" + increase);
@@ -347,6 +387,7 @@ public class ClinicRepository extends BaseRepository {
         } else if (FUNCTION_NOTE_KEY_AMP.equals(key)) {
             tests.setAmpNote(note);
         }
+        markSessionDirty(session);
         sessionLiveData.setValue(session);
         rebuildDerivedData();
         trace("视功能事件已标记，key=" + key + ", label=" + label);
@@ -357,7 +398,7 @@ public class ClinicRepository extends BaseRepository {
         session.setCurrentProgramId(programId);
         session.setCurrentStepIndex(0);
         sessionLiveData.setValue(session);
-        rebuildDerivedData();
+        rebuildDerivedData(true);
         trace("已切换验光流程，programId=" + programId);
     }
 
@@ -365,7 +406,7 @@ public class ClinicRepository extends BaseRepository {
         ExamSession session = requireSession();
         ExamWorkflowEngine.moveNext(session, safeList(programListLiveData.getValue()));
         sessionLiveData.setValue(session);
-        rebuildDerivedData();
+        rebuildDerivedData(true);
         trace("流程推进到下一步，index=" + session.getCurrentStepIndex());
     }
 
@@ -373,8 +414,17 @@ public class ClinicRepository extends BaseRepository {
         ExamSession session = requireSession();
         ExamWorkflowEngine.movePrevious(session, safeList(programListLiveData.getValue()));
         sessionLiveData.setValue(session);
-        rebuildDerivedData();
+        rebuildDerivedData(true);
         trace("流程回退到上一步，index=" + session.getCurrentStepIndex());
+    }
+
+    public void skipCurrentStep() {
+        ExamStep step = currentStepLiveData.getValue();
+        if (step != null) {
+            step.setNote("已跳过 " + ClinicFormatters.formatTimestamp(System.currentTimeMillis()));
+        }
+        moveToNextStep();
+        trace("当前步骤已跳过");
     }
 
     public void appendCustomStep(String note) {
@@ -402,8 +452,42 @@ public class ClinicRepository extends BaseRepository {
                 note
         ));
         programListLiveData.setValue(programs);
-        rebuildDerivedData();
+        rebuildDerivedData(true);
         trace("已追加自定义流程节点，stepId=" + stepId);
+    }
+
+    public void createProgram(String title, String summary, String description, boolean copyCurrentProgram) {
+        if (TextUtils.isEmpty(title)) {
+            return;
+        }
+        List<ExamProgram> programs = safeList(programListLiveData.getValue());
+        String programId = "program_" + System.currentTimeMillis();
+        ExamProgram program = new ExamProgram(
+                programId,
+                title.trim(),
+                TextUtils.isEmpty(summary) ? "自定义验光流程" : summary.trim(),
+                TextUtils.isEmpty(description) ? "由门店自定义的新程序。" : description.trim()
+        );
+        if (copyCurrentProgram) {
+            ExamProgram currentProgram = findProgram(requireSession().getCurrentProgramId(), programs);
+            if (currentProgram != null) {
+                for (ExamStep step : currentProgram.getSteps()) {
+                    program.getSteps().add(copyStep(step, program.getSteps().size()));
+                }
+            }
+        }
+        if (program.getSteps().isEmpty()) {
+            program.getSteps().add(buildSeedStepForProgram());
+        }
+        programs.add(0, program);
+        programListLiveData.setValue(programs);
+
+        ExamSession session = requireSession();
+        session.setCurrentProgramId(programId);
+        session.setCurrentStepIndex(0);
+        sessionLiveData.setValue(session);
+        rebuildDerivedData(true);
+        trace("已创建并启用新程序，programId=" + programId + ", stepCount=" + program.getSteps().size());
     }
 
     public void updateCurrentStepNote(String note) {
@@ -412,6 +496,9 @@ public class ClinicRepository extends BaseRepository {
             return;
         }
         step.setNote(note);
+        ExamSession session = requireSession();
+        markSessionDirty(session);
+        sessionLiveData.setValue(session);
         currentStepLiveData.setValue(step);
         trace("已更新当前步骤备注");
     }
@@ -419,6 +506,7 @@ public class ClinicRepository extends BaseRepository {
     public void updateSessionNote(String note) {
         ExamSession session = requireSession();
         session.setNote(note);
+        markSessionDirty(session);
         sessionLiveData.setValue(session);
         trace("已更新会话备注");
     }
@@ -430,7 +518,10 @@ public class ClinicRepository extends BaseRepository {
 
     public void saveCurrentReport() {
         List<ReportRecord> history = safeList(reportHistoryLiveData.getValue());
-        history.add(0, createReportRecord(requireSession(), safeList(programListLiveData.getValue())));
+        ExamSession session = requireSession();
+        history.add(0, createReportRecord(session, safeList(programListLiveData.getValue())));
+        session.setUnsavedChanges(false);
+        sessionLiveData.setValue(session);
         reportHistoryLiveData.setValue(history);
         trace("当前报告已保存，history=" + history.size());
     }
@@ -449,9 +540,30 @@ public class ClinicRepository extends BaseRepository {
         copyLens(latest.getFinalRight(), session.getFinalRight());
         copyLens(latest.getFinalLeft(), session.getFinalLeft());
         session.setNote("已导入最近一次报告：" + ClinicFormatters.formatTimestamp(latest.getCreatedAt()));
+        session.setUnsavedChanges(false);
         sessionLiveData.setValue(session);
         rebuildDerivedData();
         trace("最近一次报告已导入，reportId=" + latest.getId());
+    }
+
+    public void bindMainDevice(String clientId) {
+        if (TextUtils.isEmpty(clientId)) {
+            return;
+        }
+        DeviceUiState state = requireDeviceState();
+        for (ConnectedDeviceInfo device : state.getConnectedDevices()) {
+            if (!TextUtils.equals(clientId, device.getClientId())) {
+                continue;
+            }
+            state.bindMainDevice(device);
+            deviceUiStateLiveData.setValue(state);
+            trace("主设备绑定完成，clientId=" + clientId);
+            return;
+        }
+    }
+
+    public void unbindMainDevice() {
+        updateDeviceUiState(DeviceUiState::clearBoundMainDevice, "已解除主设备绑定");
     }
 
     public void updateServerState(boolean running, String ipAddress) {
@@ -477,8 +589,7 @@ public class ClinicRepository extends BaseRepository {
 
     public void updateConnectedDevices(List<ConnectedDeviceInfo> devices) {
         updateDeviceUiState(state -> {
-            state.getConnectedDevices().clear();
-            state.getConnectedDevices().addAll(devices);
+            state.replaceConnectedDevices(devices);
             if (TextUtils.isEmpty(state.getSelectedClientId()) && !devices.isEmpty()) {
                 state.setSelectedClientId(devices.get(0).getClientId());
             }
@@ -487,24 +598,32 @@ public class ClinicRepository extends BaseRepository {
 
     public void updateKnownDevices(List<KnownDeviceSummary> devices) {
         updateDeviceUiState(state -> {
-            state.getKnownDevices().clear();
-            state.getKnownDevices().addAll(devices);
+            state.replaceKnownDevices(devices);
         }, "已建档模块列表已更新，count=" + devices.size());
     }
 
     public void appendDeviceLog(String line) {
         updateDeviceUiState(state -> {
-            state.getLogs().add(0, line);
-            while (state.getLogs().size() > 120) {
-                state.getLogs().remove(state.getLogs().size() - 1);
-            }
+            state.appendLog(line, 120);
         }, null);
     }
 
     private void rebuildDerivedData() {
-        currentStepLiveData.setValue(ExamWorkflowEngine.getCurrentStep(requireSession(), safeList(programListLiveData.getValue())));
+        rebuildDerivedData(false);
+    }
+
+    private void rebuildDerivedData(boolean applyStepState) {
+        ExamSession session = requireSession();
+        List<ExamProgram> programs = safeList(programListLiveData.getValue());
+        ExamStep step = ExamWorkflowEngine.getCurrentStep(session, programs);
+        if (applyStepState) {
+            applyCurrentStepState(session, step);
+            sessionLiveData.setValue(session);
+            step = ExamWorkflowEngine.getCurrentStep(session, programs);
+        }
+        currentStepLiveData.setValue(step);
         currentMetricsLiveData.setValue(buildVisualMetrics(requireSession()));
-        qrPayloadLiveData.setValue(buildQrPayload(requireSession(), safeList(programListLiveData.getValue())));
+        qrPayloadLiveData.setValue(buildQrPayload(requireSession(), programs));
         ExamStep currentStep = currentStepLiveData.getValue();
         trace("派生数据已重建，currentStep=" + (currentStep == null ? "none" : currentStep.getId()));
     }
@@ -573,6 +692,51 @@ public class ClinicRepository extends BaseRepository {
         }
     }
 
+    private void clearMeasurement(
+            ExamSession session,
+            ExamSession.DistanceMode distanceMode,
+            LensMeasurement farMeasurement,
+            LensMeasurement nearMeasurement
+    ) {
+        LensMeasurement target = distanceMode == ExamSession.DistanceMode.FAR ? farMeasurement : nearMeasurement;
+        switch (session.getSelectedField()) {
+            case SPH:
+                target.setSph(0);
+                break;
+            case CYL:
+                target.setCyl(0);
+                break;
+            case AXIS:
+                target.setAxis(0);
+                break;
+            case ADD:
+                target.setAdd(0);
+                break;
+            case VA:
+                target.setVa(0);
+                break;
+            case X:
+                if (session.getPrismMode() == ExamSession.PrismMode.CARTESIAN) {
+                    target.setPrismX(0);
+                } else {
+                    target.setPrismR(0);
+                }
+                break;
+            case Y:
+                if (session.getPrismMode() == ExamSession.PrismMode.CARTESIAN) {
+                    target.setPrismY(0);
+                } else {
+                    target.setPrismTheta(0);
+                }
+                break;
+            case PD:
+                target.setPd(0);
+                break;
+            default:
+                break;
+        }
+    }
+
     private void syncFinalPrescription(ExamSession session) {
         copyLens(session.getFarRight(), session.getFinalRight());
         copyLens(session.getFarLeft(), session.getFinalLeft());
@@ -627,9 +791,12 @@ public class ClinicRepository extends BaseRepository {
 
     private ReportRecord createReportRecord(ExamSession session, List<ExamProgram> programs) {
         syncFinalPrescription(session);
+        PatientProfile patient = session.getPatient();
         ReportRecord record = new ReportRecord(
                 "R" + System.currentTimeMillis(),
-                session.getPatient() != null ? session.getPatient().getDisplayName() : "未命名被测者",
+                patient != null ? patient.getDisplayName() : "未命名被测者",
+                patient == null ? "" : patient.getPhone(),
+                patient == null ? "" : patient.getAddress(),
                 resolveProgramTitle(session.getCurrentProgramId(), programs),
                 System.currentTimeMillis(),
                 "远用矫正视力 R " + ClinicFormatters.formatUnsigned(session.getFinalRight().getVa())
@@ -653,6 +820,51 @@ public class ClinicRepository extends BaseRepository {
     private String resolveProgramTitle(String programId, List<ExamProgram> programs) {
         ExamProgram program = findProgram(programId, programs);
         return program == null ? "未选择程序" : program.getTitle();
+    }
+
+    private ExamStep copyStep(ExamStep source, int index) {
+        return new ExamStep(
+                source.getId() + "_copy_" + index,
+                source.getTitle(),
+                source.getDescription(),
+                source.getChartId(),
+                source.getDistanceMode(),
+                source.getEyeScope(),
+                source.getSubjectSource(),
+                source.getTargetField(),
+                source.getFogOption(),
+                source.getNearLightOption(),
+                source.getFunctionLabel(),
+                source.getSkipField(),
+                source.getSkipComparator(),
+                source.getSkipThreshold(),
+                source.getNote()
+        );
+    }
+
+    private ExamStep buildSeedStepForProgram() {
+        ExamSession session = requireSession();
+        String targetField = session.getSelectedField() == null
+                ? ExamSession.MeasurementField.SPH.name()
+                : session.getSelectedField().name();
+        return new ExamStep(
+                "step_" + System.currentTimeMillis(),
+                "初始步骤",
+                "从当前工作台状态生成的程序起始步骤。",
+                TextUtils.isEmpty(session.getSelectedChartId()) ? "va" : session.getSelectedChartId(),
+                session.getDistanceMode() == ExamSession.DistanceMode.NEAR
+                        ? ExamStep.DistanceMode.NEAR : ExamStep.DistanceMode.FAR,
+                toScope(session.getActiveEye()),
+                toProgramSourceLabel(session.getLensDataSource()),
+                targetField,
+                "",
+                session.getFunctionalTests().isNearLampOn() ? "开" : "关",
+                resolveFunctionLabel(session.getActiveTool()),
+                "",
+                ExamStep.Comparator.NONE,
+                0,
+                "创建于 " + ClinicFormatters.formatTimestamp(System.currentTimeMillis())
+        );
     }
 
     private ExamProgram findProgram(String programId, List<ExamProgram> programs) {
@@ -724,6 +936,27 @@ public class ClinicRepository extends BaseRepository {
         to.setPrismTheta(from.getPrismTheta());
     }
 
+    private String toProgramSourceLabel(ExamSession.LensDataSource source) {
+        if (source == null) {
+            return "SubJ";
+        }
+        switch (source) {
+            case SUBJECTIVE:
+                return "SubJ";
+            case UNAIDED:
+                return "Un-aided";
+            default:
+                return source.name();
+        }
+    }
+
+    private String resolveFunctionLabel(ExamSession.ToolType toolType) {
+        if (toolType == null || toolType == ExamSession.ToolType.NONE) {
+            return "";
+        }
+        return toolType == ExamSession.ToolType.ACA ? "AC/A" : toolType.name();
+    }
+
     private ExamStep.EyeScope toScope(ExamSession.EyeSelection eyeSelection) {
         if (eyeSelection == ExamSession.EyeSelection.LEFT) {
             return ExamStep.EyeScope.LEFT;
@@ -732,6 +965,118 @@ public class ClinicRepository extends BaseRepository {
             return ExamStep.EyeScope.BOTH;
         }
         return ExamStep.EyeScope.RIGHT;
+    }
+
+    private void applyCurrentStepState(ExamSession session, ExamStep step) {
+        if (session == null || step == null) {
+            return;
+        }
+        if (!TextUtils.isEmpty(step.getChartId())) {
+            session.setSelectedChartId(step.getChartId());
+        }
+        session.setDistanceMode(toSessionDistanceMode(step.getDistanceMode(), session.getDistanceMode()));
+        session.setActiveEye(toEyeSelection(step.getEyeScope()));
+        session.setSelectedField(parseMeasurementField(step.getTargetField(), session.getSelectedField()));
+        session.setLensDataSource(parseLensDataSource(step.getSubjectSource(), session.getLensDataSource()));
+        session.setActiveTool(parseToolType(step.getFunctionLabel()));
+        if ("开".equals(step.getNearLightOption())) {
+            session.getFunctionalTests().setNearLampOn(true);
+        } else if ("关".equals(step.getNearLightOption())) {
+            session.getFunctionalTests().setNearLampOn(false);
+        }
+    }
+
+    private ExamSession.DistanceMode toSessionDistanceMode(
+            ExamStep.DistanceMode distanceMode,
+            ExamSession.DistanceMode fallback
+    ) {
+        if (distanceMode == null || distanceMode == ExamStep.DistanceMode.BOTH) {
+            return fallback == null ? ExamSession.DistanceMode.FAR : fallback;
+        }
+        return distanceMode == ExamStep.DistanceMode.NEAR
+                ? ExamSession.DistanceMode.NEAR : ExamSession.DistanceMode.FAR;
+    }
+
+    private ExamSession.EyeSelection toEyeSelection(ExamStep.EyeScope eyeScope) {
+        if (eyeScope == ExamStep.EyeScope.LEFT) {
+            return ExamSession.EyeSelection.LEFT;
+        }
+        if (eyeScope == ExamStep.EyeScope.BOTH) {
+            return ExamSession.EyeSelection.BOTH;
+        }
+        return ExamSession.EyeSelection.RIGHT;
+    }
+
+    private ExamSession.MeasurementField parseMeasurementField(
+            String targetField,
+            ExamSession.MeasurementField fallback
+    ) {
+        if (TextUtils.isEmpty(targetField)) {
+            return fallback == null ? ExamSession.MeasurementField.SPH : fallback;
+        }
+        try {
+            return ExamSession.MeasurementField.valueOf(targetField.trim().toUpperCase(Locale.getDefault()));
+        } catch (Exception ignored) {
+            return fallback == null ? ExamSession.MeasurementField.SPH : fallback;
+        }
+    }
+
+    private ExamSession.LensDataSource parseLensDataSource(
+            String source,
+            ExamSession.LensDataSource fallback
+    ) {
+        if (TextUtils.isEmpty(source)) {
+            return fallback == null ? ExamSession.LensDataSource.SUBJECTIVE : fallback;
+        }
+        String normalized = source.trim().toUpperCase(Locale.getDefault());
+        if ("SUBJ".equals(normalized) || "SUBJECTIVE".equals(normalized)) {
+            return ExamSession.LensDataSource.SUBJECTIVE;
+        }
+        if ("UN-AIDED".equals(normalized) || "UNAIDED".equals(normalized)) {
+            return ExamSession.LensDataSource.UNAIDED;
+        }
+        if ("FINAL".equals(normalized)) {
+            return ExamSession.LensDataSource.FINAL;
+        }
+        if ("LM".equals(normalized)) {
+            return ExamSession.LensDataSource.LM;
+        }
+        if ("AR".equals(normalized)) {
+            return ExamSession.LensDataSource.AR;
+        }
+        return fallback == null ? ExamSession.LensDataSource.SUBJECTIVE : fallback;
+    }
+
+    private ExamSession.ToolType parseToolType(String functionLabel) {
+        if (TextUtils.isEmpty(functionLabel)) {
+            return ExamSession.ToolType.NONE;
+        }
+        String normalized = functionLabel.trim().toUpperCase(Locale.getDefault());
+        if (normalized.contains("NPC")) {
+            return ExamSession.ToolType.NPC;
+        }
+        if (normalized.contains("NPA")) {
+            return ExamSession.ToolType.NPA;
+        }
+        if (normalized.contains("NRA")) {
+            return ExamSession.ToolType.NRA;
+        }
+        if (normalized.contains("PRA")) {
+            return ExamSession.ToolType.PRA;
+        }
+        if (normalized.contains("AC/A") || normalized.contains("ACA")) {
+            return ExamSession.ToolType.ACA;
+        }
+        if (normalized.contains("AMP")) {
+            return ExamSession.ToolType.AMP;
+        }
+        return ExamSession.ToolType.NONE;
+    }
+
+    private void markSessionDirty(ExamSession session) {
+        if (session != null) {
+            session.setUnsavedChanges(true);
+        }
     }
 
     private void trace(String message) {

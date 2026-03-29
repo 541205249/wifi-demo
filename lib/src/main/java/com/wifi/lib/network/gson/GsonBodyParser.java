@@ -19,6 +19,11 @@ public class GsonBodyParser<T> implements ApiResponseParser<ResponseBody, T> {
     public static final int RESULT_OK = 0;
     public static final int RESULT_EMPTY_BODY = 1001;
     public static final int RESULT_PARSE_ERROR = 1002;
+    private static final String MESSAGE_EMPTY_BODY = "响应体为空";
+    private static final String MESSAGE_EMPTY_BODY_STRING = "响应体为空字符串";
+    private static final String MESSAGE_PARSE_RESULT_EMPTY = "Gson 解析结果为空";
+    private static final String MESSAGE_PARSE_SUCCESS = "Gson 解析成功";
+    private static final String MESSAGE_PARSE_FAILED_PREFIX = "Gson 解析失败: ";
 
     private final Gson gson;
     private final Type targetType;
@@ -48,21 +53,41 @@ public class GsonBodyParser<T> implements ApiResponseParser<ResponseBody, T> {
             @Nullable ResponseBody body
     ) {
         if (body == null) {
-            return ApiParsedResult.failure(RESULT_EMPTY_BODY, "响应体为空");
+            return failureEmptyBody(MESSAGE_EMPTY_BODY);
         }
         try {
-            String rawJson = body.string();
+            String rawJson = readBody(body);
             if (TextUtils.isEmpty(rawJson)) {
-                return ApiParsedResult.failure(RESULT_EMPTY_BODY, "响应体为空字符串");
+                return failureEmptyBody(MESSAGE_EMPTY_BODY_STRING);
             }
-            T data = gson.fromJson(rawJson, targetType);
+            T data = parseBody(rawJson);
             if (data == null) {
-                return ApiParsedResult.failure(RESULT_PARSE_ERROR, "Gson 解析结果为空");
+                return failureParseError(MESSAGE_PARSE_RESULT_EMPTY);
             }
-            return ApiParsedResult.success(RESULT_OK, data, "Gson 解析成功");
+            return ApiParsedResult.success(RESULT_OK, data, MESSAGE_PARSE_SUCCESS);
         } catch (JsonSyntaxException | IOException exception) {
-            return ApiParsedResult.failure(RESULT_PARSE_ERROR, "Gson 解析失败: " + safeMessage(exception));
+            return failureParseError(MESSAGE_PARSE_FAILED_PREFIX + safeMessage(exception));
         }
+    }
+
+    @NonNull
+    private String readBody(@NonNull ResponseBody body) throws IOException {
+        return body.string();
+    }
+
+    @Nullable
+    private T parseBody(@NonNull String rawJson) {
+        return gson.fromJson(rawJson, targetType);
+    }
+
+    @NonNull
+    private ApiParsedResult<T> failureEmptyBody(@NonNull String message) {
+        return ApiParsedResult.failure(RESULT_EMPTY_BODY, message);
+    }
+
+    @NonNull
+    private ApiParsedResult<T> failureParseError(@NonNull String message) {
+        return ApiParsedResult.failure(RESULT_PARSE_ERROR, message);
     }
 
     @NonNull

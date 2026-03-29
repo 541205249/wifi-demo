@@ -1,243 +1,1097 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:background="@color/console_blue">
 
     <LinearLayout
+        android:id="@+id/layoutWorkbenchRoot"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="14dp">
 
-        <com.google.android.material.card.MaterialCardView
+        <LinearLayout
+            android:id="@+id/layoutTopBar"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="64dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTopClear"
+                style="@style/Widget.Optometry.ConsoleButton"
+                android:layout_width="84dp"
+                android:text="清除" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTopMenu"
+                style="@style/Widget.Optometry.ConsoleButton"
+                android:layout_width="84dp"
+                android:layout_marginStart="10dp"
+                android:text="菜单" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTopPrismMode"
+                style="@style/Widget.Optometry.ConsoleButton"
+                android:layout_width="96dp"
+                android:layout_marginStart="22dp"
+                android:text="X - Y" />
+
+            <TextView
+                android:id="@+id/tvTopPdValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:fontFamily="monospace"
+                android:text="PD = 64.0"
+                android:textColor="@color/console_text_light"
+                android:textSize="28sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTopCylinderMode"
+                style="@style/Widget.Optometry.ConsoleButton"
+                android:layout_width="84dp"
+                android:layout_marginStart="20dp"
+                android:text="C -" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTopDistanceMode"
+                style="@style/Widget.Optometry.ConsoleButton"
+                android:layout_width="100dp"
+                android:layout_marginStart="14dp"
+                android:text="远距" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
 
             <LinearLayout
-                android:layout_width="match_parent"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:gravity="end"
+                android:orientation="vertical">
 
                 <TextView
+                    android:id="@+id/tvToolbarClock"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="验光工作台"
-                    android:textColor="@color/brand_text_primary"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvPatientSummary"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:textColor="@color/brand_text_secondary"
-                    android:textSize="14sp" />
-
-                <TextView
-                    android:id="@+id/tvProgramSummary"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:textColor="@color/brand_text_primary"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvStepSummary"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:textColor="@color/brand_text_secondary"
-                    android:textSize="14sp" />
-
-                <com.google.android.material.progressindicator.LinearProgressIndicator
-                    android:id="@+id/progressCurrentStep"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp" />
+                    android:fontFamily="monospace"
+                    android:text="2026-03-29 13:20:00"
+                    android:textColor="@color/console_text_light"
+                    android:textSize="19sp" />
 
                 <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:orientation="horizontal">
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnPrevStep"
-                        style="?attr/materialButtonOutlinedStyle"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="上一步" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnNextStep"
-                        style="?attr/materialButtonOutlinedStyle"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:layout_weight="1"
-                        android:text="下一步" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnChartHelp"
-                        style="?attr/materialButtonOutlinedStyle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:text="帮助" />
-                </LinearLayout>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/chipGroupCharts"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
-
-                <ImageView
-                    android:id="@+id/ivChartPreview"
-                    android:layout_width="match_parent"
-                    android:layout_height="180dp"
-                    android:layout_marginTop="12dp"
-                    android:background="@color/brand_surface_variant"
-                    android:scaleType="fitCenter" />
-
-                <TextView
-                    android:id="@+id/tvChartTitle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:textColor="@color/brand_text_primary"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/tvChartSubtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:textColor="@color/brand_secondary"
-                    android:textSize="14sp" />
+                    android:orientation="horizontal">
 
-                <TextView
-                    android:id="@+id/tvChartDescription"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:textColor="@color/brand_text_secondary"
-                    android:textSize="14sp" />
+                    <TextView
+                        android:id="@+id/chipStatusCv"
+                        style="@style/Widget.Optometry.ConsoleBadge"
+                        android:text="CV" />
+
+                    <TextView
+                        android:id="@+id/chipStatusCp"
+                        style="@style/Widget.Optometry.ConsoleBadge"
+                        android:layout_marginStart="6dp"
+                        android:text="CP" />
+
+                    <TextView
+                        android:id="@+id/chipStatusLm"
+                        style="@style/Widget.Optometry.ConsoleBadge"
+                        android:layout_marginStart="6dp"
+                        android:text="LM" />
+
+                    <TextView
+                        android:id="@+id/chipStatusAr"
+                        style="@style/Widget.Optometry.ConsoleBadge"
+                        android:layout_marginStart="6dp"
+                        android:text="AR" />
+
+                    <TextView
+                        android:id="@+id/chipStatusPrinter"
+                        style="@style/Widget.Optometry.ConsoleBadge"
+                        android:layout_marginStart="6dp"
+                        android:text="PRINTER" />
+                </LinearLayout>
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
 
-        <com.google.android.material.card.MaterialCardView
+        <LinearLayout
+            android:id="@+id/layoutMainContent"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp">
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal">
 
             <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:id="@+id/layoutLeftRail"
+                android:layout_width="110dp"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnActionSubject"
+                    style="@style/Widget.Optometry.ConsoleLeftAction"
+                    android:text="被测者" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnActionHelp"
+                    style="@style/Widget.Optometry.ConsoleLeftAction"
+                    android:text="帮助" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnActionIn"
+                    style="@style/Widget.Optometry.ConsoleLeftAction"
+                    android:text="IN" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnActionPrint"
+                    style="@style/Widget.Optometry.ConsoleLeftAction"
+                    android:text="打印" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnActionShift"
+                    style="@style/Widget.Optometry.ConsoleLeftAction"
+                    android:text="SHIFT" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnActionReport"
+                    style="@style/Widget.Optometry.ConsoleLeftAction"
+                    android:text="报告" />
 
                 <TextView
-                    android:id="@+id/tvMeasurementMode"
+                    android:id="@+id/tvLeftStepName"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/brand_text_secondary"
-                    android:textSize="13sp" />
+                    android:layout_marginTop="10dp"
+                    android:gravity="center"
+                    android:text="无程序"
+                    android:textColor="@color/console_text_light"
+                    android:textSize="18sp" />
+            </LinearLayout>
 
-                <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/chipGroupFields"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp" />
-
-                <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/chipGroupEyes"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp" />
-
-                <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/chipGroupLens"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp" />
-
-                <TextView android:id="@+id/tvFarRight" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:textColor="@color/brand_text_primary" android:textSize="13sp" />
-                <TextView android:id="@+id/tvFarLeft" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textColor="@color/brand_text_primary" android:textSize="13sp" />
-                <TextView android:id="@+id/tvNearRight" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textColor="@color/brand_text_primary" android:textSize="13sp" />
-                <TextView android:id="@+id/tvNearLeft" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textColor="@color/brand_text_primary" android:textSize="13sp" />
-                <TextView android:id="@+id/tvFinalRight" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textColor="@color/brand_secondary" android:textSize="13sp" android:textStyle="bold" />
-                <TextView android:id="@+id/tvFinalLeft" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:textColor="@color/brand_secondary" android:textSize="13sp" android:textStyle="bold" />
+            <LinearLayout
+                android:id="@+id/layoutCenterColumn"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="10dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
                     android:orientation="horizontal">
 
-                    <com.google.android.material.button.MaterialButton android:id="@+id/btnAdjustMinus" style="?attr/materialButtonOutlinedStyle" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="减" />
-                    <com.google.android.material.button.MaterialButton android:id="@+id/btnAdjustPlus" style="?attr/materialButtonOutlinedStyle" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:layout_weight="1" android:text="加" />
-                    <com.google.android.material.button.MaterialButton android:id="@+id/btnShiftMinus" style="?attr/materialButtonOutlinedStyle" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:layout_weight="1" android:text="SHIFT减" />
-                    <com.google.android.material.button.MaterialButton android:id="@+id/btnShiftPlus" style="?attr/materialButtonOutlinedStyle" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:layout_weight="1" android:text="SHIFT加" />
+                    <LinearLayout
+                        android:layout_width="104dp"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical">
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:background="@color/console_blue_bar" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1"
+                            android:background="@android:color/white" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:background="@color/console_blue_bar" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1"
+                            android:background="@android:color/white" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:paddingHorizontal="12dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="72dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="R"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="44sp" />
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/cardEyeRight"
+                                android:layout_width="64dp"
+                                android:layout_height="64dp"
+                                android:layout_marginStart="14dp"
+                                app:cardBackgroundColor="@android:color/white"
+                                app:cardCornerRadius="32dp"
+                                app:strokeColor="@color/console_blue_bar"
+                                app:strokeWidth="4dp" />
+
+                            <TextView
+                                android:id="@+id/tvEyeBoth"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:gravity="center"
+                                android:text="B"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="44sp" />
+
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/cardEyeLeft"
+                                android:layout_width="64dp"
+                                android:layout_height="64dp"
+                                android:layout_marginEnd="14dp"
+                                app:cardBackgroundColor="@android:color/white"
+                                app:cardCornerRadius="32dp"
+                                app:strokeColor="@color/console_blue_bar"
+                                app:strokeWidth="4dp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="L"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="44sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/rowMetricSph"
+                            android:layout_width="match_parent"
+                            android:layout_height="46dp"
+                            android:background="@drawable/bg_workbench_surface_panel"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingHorizontal="18dp">
+
+                            <TextView
+                                android:id="@+id/tvValueSphRight"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="monospace"
+                                android:gravity="center"
+                                android:text="0.00"
+                                android:textColor="@color/console_text_dark"
+                                android:textSize="28sp" />
+
+                            <TextView
+                                android:layout_width="72dp"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="S"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="34sp" />
+
+                            <TextView
+                                android:id="@+id/tvValueSphLeft"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="monospace"
+                                android:gravity="center"
+                                android:text="0.00"
+                                android:textColor="@color/console_text_dark"
+                                android:textSize="28sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/rowMetricCyl"
+                            android:layout_width="match_parent"
+                            android:layout_height="46dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingHorizontal="18dp">
+
+                            <TextView
+                                android:id="@+id/tvValueCylRight"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="monospace"
+                                android:gravity="center"
+                                android:text="-0.00"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="28sp" />
+
+                            <TextView
+                                android:layout_width="72dp"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="C"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="34sp" />
+
+                            <TextView
+                                android:id="@+id/tvValueCylLeft"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="monospace"
+                                android:gravity="center"
+                                android:text="-0.00"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="28sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/rowMetricAxis"
+                            android:layout_width="match_parent"
+                            android:layout_height="46dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingHorizontal="18dp">
+
+                            <TextView
+                                android:id="@+id/tvValueAxisRight"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="monospace"
+                                android:gravity="center"
+                                android:text="0"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="28sp" />
+
+                            <TextView
+                                android:layout_width="72dp"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="A"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="34sp" />
+
+                            <TextView
+                                android:id="@+id/tvValueAxisLeft"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="monospace"
+                                android:gravity="center"
+                                android:text="0"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="28sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/rowMetricAdd"
+                            android:layout_width="match_parent"
+                            android:layout_height="46dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingHorizontal="18dp">
+
+                            <TextView
+                                android:id="@+id/tvValueAddRight"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="monospace"
+                                android:gravity="center"
+                                android:text="0.00"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="28sp" />
+
+                            <TextView
+                                android:layout_width="72dp"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="ADD"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="28sp" />
+
+                            <TextView
+                                android:id="@+id/tvValueAddLeft"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="monospace"
+                                android:gravity="center"
+                                android:text="0.00"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="28sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/rowMetricVa"
+                            android:layout_width="match_parent"
+                            android:layout_height="46dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingHorizontal="18dp">
+
+                            <TextView
+                                android:id="@+id/tvValueVaRight"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="monospace"
+                                android:gravity="center"
+                                android:text="0.00"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="28sp" />
+
+                            <TextView
+                                android:layout_width="72dp"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="VA"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="28sp" />
+
+                            <TextView
+                                android:id="@+id/tvValueVaLeft"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="monospace"
+                                android:gravity="center"
+                                android:text="0.00"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="28sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/rowMetricX"
+                            android:layout_width="match_parent"
+                            android:layout_height="50dp"
+                            android:layout_marginTop="14dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingHorizontal="18dp">
+
+                            <TextView
+                                android:id="@+id/tvValueXRight"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="monospace"
+                                android:gravity="center"
+                                android:text="0.00"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="28sp" />
+
+                            <TextView
+                                android:id="@+id/tvMetricXLabel"
+                                android:layout_width="72dp"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="△"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="28sp" />
+
+                            <TextView
+                                android:id="@+id/tvValueXLeft"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="monospace"
+                                android:gravity="center"
+                                android:text="0.00"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="28sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:id="@+id/rowMetricY"
+                            android:layout_width="match_parent"
+                            android:layout_height="50dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingHorizontal="18dp">
+
+                            <TextView
+                                android:id="@+id/tvValueYRight"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="monospace"
+                                android:gravity="center"
+                                android:text="0.00"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="28sp" />
+
+                            <TextView
+                                android:id="@+id/tvMetricYLabel"
+                                android:layout_width="72dp"
+                                android:layout_height="wrap_content"
+                                android:gravity="center"
+                                android:text="↕"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="28sp" />
+
+                            <TextView
+                                android:id="@+id/tvValueYLeft"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="monospace"
+                                android:gravity="center"
+                                android:text="0.00"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="28sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="104dp"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical">
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:background="@color/console_blue_bar" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1"
+                            android:background="@android:color/white" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:background="@color/console_blue_bar" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1"
+                            android:background="@android:color/white" />
+                    </LinearLayout>
                 </LinearLayout>
 
                 <LinearLayout
-                    android:id="@+id/layoutModeButtons"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:orientation="horizontal" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+                    android:layout_height="236dp"
+                    android:layout_marginTop="10dp"
+                    android:orientation="horizontal">
 
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp">
+                    <LinearLayout
+                        android:layout_width="360dp"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:id="@+id/rowMetricPd"
+                            android:layout_width="0dp"
+                            android:layout_height="0dp"
+                            android:visibility="gone" />
+
+                        <HorizontalScrollView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:scrollbars="none">
+
+                            <LinearLayout
+                                android:id="@+id/layoutDataSources"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal" />
+                        </HorizontalScrollView>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1"
+                            android:layout_marginTop="6dp"
+                            android:background="@drawable/bg_workbench_surface_panel"
+                            android:orientation="horizontal"
+                            android:padding="12dp">
+
+                            <LinearLayout
+                                android:layout_width="40dp"
+                                android:layout_height="match_parent"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:id="@+id/tvScaleTop"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:gravity="center"
+                                    android:text="0.2"
+                                    android:textColor="@color/console_text_dark"
+                                    android:textSize="20sp" />
+
+                                <Space
+                                    android:layout_width="match_parent"
+                                    android:layout_height="0dp"
+                                    android:layout_weight="1" />
+
+                                <TextView
+                                    android:id="@+id/tvScaleMiddle"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:gravity="center"
+                                    android:text="0.3"
+                                    android:textColor="@color/console_text_dark"
+                                    android:textSize="20sp" />
+
+                                <Space
+                                    android:layout_width="match_parent"
+                                    android:layout_height="0dp"
+                                    android:layout_weight="1" />
+
+                                <TextView
+                                    android:id="@+id/tvScaleBottom"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:gravity="center"
+                                    android:text="0.4"
+                                    android:textColor="@color/console_text_dark"
+                                    android:textSize="20sp" />
+                            </LinearLayout>
+
+                            <ImageView
+                                android:id="@+id/ivChartPreview"
+                                android:layout_width="0dp"
+                                android:layout_height="match_parent"
+                                android:layout_marginStart="12dp"
+                                android:layout_weight="1"
+                                android:adjustViewBounds="true"
+                                android:background="@android:color/white"
+                                android:contentDescription="@null"
+                                android:padding="8dp"
+                                android:scaleType="fitCenter" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="16dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnSelectProgram"
+                                style="@style/Widget.Optometry.ConsoleButton"
+                                android:layout_width="130dp"
+                                android:text="无程序" />
+
+                            <TextView
+                                android:id="@+id/tvProgramProgress"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="18dp"
+                                android:text="0/0"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="22sp" />
+
+                            <Space
+                                android:layout_width="0dp"
+                                android:layout_height="0dp"
+                                android:layout_weight="1" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnSkipStep"
+                                style="@style/Widget.Optometry.ConsoleButton"
+                                android:layout_width="82dp"
+                                android:text="跳过" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:layout_marginTop="6dp"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/btnPrevStep"
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
+                                android:background="@drawable/bg_workbench_action_button"
+                                android:gravity="center"
+                                android:text="《"
+                                android:textColor="@color/console_border"
+                                android:textSize="24sp" />
+
+                            <TextView
+                                android:id="@+id/btnNextStep"
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
+                                android:layout_marginStart="6dp"
+                                android:background="@drawable/bg_workbench_action_button"
+                                android:gravity="center"
+                                android:text="》"
+                                android:textColor="@color/console_border"
+                                android:textSize="24sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/btnAdjustPlus"
+                                android:layout_width="60dp"
+                                android:layout_height="60dp"
+                                android:background="@drawable/bg_workbench_adjust_button"
+                                android:gravity="center"
+                                android:text="+"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="34sp" />
+
+                            <View
+                                android:id="@+id/viewKnob"
+                                android:layout_width="0dp"
+                                android:layout_height="170dp"
+                                android:layout_marginHorizontal="18dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_workbench_knob_panel" />
+
+                            <TextView
+                                android:id="@+id/btnAdjustMinus"
+                                android:layout_width="60dp"
+                                android:layout_height="60dp"
+                                android:background="@drawable/bg_workbench_adjust_button"
+                                android:gravity="center"
+                                android:text="−"
+                                android:textColor="@color/console_text_light"
+                                android:textSize="34sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/btnShiftMinus"
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
+                                android:background="@drawable/bg_workbench_round_selector"
+                                android:gravity="center"
+                                android:text="1"
+                                android:textColor="@android:color/white"
+                                android:textSize="22sp" />
+
+                            <HorizontalScrollView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="14dp"
+                                android:layout_weight="1"
+                                android:scrollbars="none">
+
+                                <LinearLayout
+                                    android:id="@+id/layoutToolTabs"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal" />
+                            </HorizontalScrollView>
+
+                            <TextView
+                                android:id="@+id/btnShiftPlus"
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
+                                android:layout_marginStart="14dp"
+                                android:background="@drawable/bg_workbench_round_selector"
+                                android:gravity="center"
+                                android:text="2"
+                                android:textColor="@android:color/white"
+                                android:textSize="22sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
 
             <LinearLayout
-                android:id="@+id/layoutFunctionRows"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp" />
-        </com.google.android.material.card.MaterialCardView>
+                android:id="@+id/layoutRightColumn"
+                android:layout_width="320dp"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
 
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:layout_marginBottom="20dp">
+                <ScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_workbench_surface_panel"
+                    android:fillViewport="true"
+                    android:padding="10dp"
+                    android:scrollbars="none">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                    <LinearLayout
+                        android:id="@+id/layoutChartCatalog"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+                </ScrollView>
 
-                <EditText android:id="@+id/etSessionNote" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@android:drawable/edit_text" android:hint="当前会话备注" android:minLines="3" android:padding="12dp" />
-                <com.google.android.material.button.MaterialButton android:id="@+id/btnSaveSessionNote" style="?attr/materialButtonOutlinedStyle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="保存会话备注" />
-                <EditText android:id="@+id/etStepNote" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:background="@android:drawable/edit_text" android:hint="当前步骤备注" android:minLines="3" android:padding="12dp" />
-                <com.google.android.material.button.MaterialButton android:id="@+id/btnSaveStepNote" style="?attr/materialButtonOutlinedStyle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="保存步骤备注" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="246dp"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_workbench_surface_panel"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <LinearLayout
+                        android:id="@+id/layoutEyeModes"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal" />
+
+                    <LinearLayout
+                        android:id="@+id/layoutLensModes"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:orientation="horizontal" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnFarMode"
+                            style="@style/Widget.Optometry.ConsoleButton"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_weight="1"
+                            android:text="远距" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnNearMode"
+                            style="@style/Widget.Optometry.ConsoleButton"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_marginStart="6dp"
+                            android:layout_weight="1"
+                            android:text="近距" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnLampToggle"
+                            style="@style/Widget.Optometry.ConsoleButton"
+                            android:layout_width="0dp"
+                            android:layout_height="42dp"
+                            android:layout_marginStart="6dp"
+                            android:layout_weight="1"
+                            android:text="开灯" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvCurrentSubjectName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:textColor="@color/console_text_dark"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvCurrentSubjectMeta"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:maxLines="2"
+                        android:textColor="@color/console_text_soft"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/tvStepTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:textColor="@color/console_text_dark"
+                        android:textSize="17sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvStepMeta"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_marginTop="4dp"
+                        android:layout_weight="1"
+                        android:textColor="@color/console_note_text"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/tvServerStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/console_text_soft"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:id="@+id/tvBoundDeviceStatus"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/console_text_soft"
+                        android:textSize="12sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnChartHelp"
+                        style="@style/Widget.Optometry.ConsoleButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="42dp"
+                        android:layout_marginTop="6dp"
+                        android:text="视标帮助" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvStepLength"
+                    android:layout_width="110dp"
+                    android:layout_height="44dp"
+                    android:layout_gravity="end"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_workbench_action_button"
+                    android:gravity="center"
+                    android:text="步长 0.25"
+                    android:textColor="@color/console_text_dark"
+                    android:textSize="18sp" />
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
     </LinearLayout>
-</androidx.core.widget.NestedScrollView>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardToolOverlay"
+        android:layout_width="920dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone"
+        app:cardBackgroundColor="#4D89BC"
+        app:cardCornerRadius="14dp"
+        app:strokeWidth="0dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="18dp">
+
+            <TextView
+                android:id="@+id/tvToolTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textColor="@android:color/black"
+                android:textSize="34sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvToolPrimaryValue"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_workbench_surface_panel"
+                android:gravity="center"
+                android:padding="12dp"
+                android:textColor="@android:color/black"
+                android:textSize="34sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/btnToolMinus"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:background="@drawable/bg_workbench_adjust_button"
+                    android:gravity="center"
+                    android:text="+"
+                    android:textColor="@color/console_text_light"
+                    android:textSize="42sp" />
+
+                <TextView
+                    android:id="@+id/tvToolSecondaryValue"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:textColor="@color/console_text_light"
+                    android:textSize="28sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvToolTertiaryValue"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:textColor="@color/console_text_light"
+                    android:textSize="28sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/btnToolPlus"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:background="@drawable/bg_workbench_adjust_button"
+                    android:gravity="center"
+                    android:text="−"
+                    android:textColor="@color/console_text_light"
+                    android:textSize="42sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnToolExtraPrimary"
+                    style="@style/Widget.Optometry.ConsoleButton"
+                    android:layout_width="210dp"
+                    android:text="动作一" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnToolExtraSecondary"
+                    style="@style/Widget.Optometry.ConsoleButton"
+                    android:layout_width="210dp"
+                    android:layout_marginStart="20dp"
+                    android:text="动作二" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvToolHint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:gravity="center"
+                android:textColor="@color/console_note_text"
+                android:textSize="18sp" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+</FrameLayout>

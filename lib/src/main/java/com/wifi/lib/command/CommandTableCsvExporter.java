@@ -15,32 +15,28 @@ import java.nio.charset.StandardCharsets;
  */
 public final class CommandTableCsvExporter {
     private static final String TAG = "CommandTableExporter";
+    private static final String[] CSV_HEADER = {"编码", "指令", "编号解释"};
 
     public void exportTemplate(@NonNull CommandCatalog catalog, @NonNull OutputStream outputStream) throws IOException {
         try (Writer writer = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8)) {
-            writer.write(buildCsvHeader());
-            writer.write('\n');
+            writeCsvLine(writer, CSV_HEADER);
 
             for (CommandReservation reservation : catalog.getReservations()) {
-                writer.write(buildCsvLine(
+                writeCsvLine(
+                        writer,
                         reservation.getCodeValue(),
                         "",
                         reservation.getCodeExplanation()
-                ));
-                writer.write('\n');
+                );
             }
             writer.flush();
         }
         DLog.i(TAG, "编码表模板导出完成，count=" + catalog.getReservations().size());
     }
 
-    @NonNull
-    private String buildCsvHeader() {
-        return buildCsvLine(
-                "编码",
-                "指令",
-                "编号解释"
-        );
+    private void writeCsvLine(@NonNull Writer writer, @NonNull String... values) throws IOException {
+        writer.write(buildCsvLine(values));
+        writer.write('\n');
     }
 
     @NonNull

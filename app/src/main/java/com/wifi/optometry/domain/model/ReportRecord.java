@@ -6,6 +6,8 @@ import java.util.List;
 public class ReportRecord {
     private String id;
     private String patientName;
+    private String patientPhone;
+    private String patientAddress;
     private String programName;
     private long createdAt;
     private String visionSummary;
@@ -18,6 +20,8 @@ public class ReportRecord {
     public ReportRecord(
             String id,
             String patientName,
+            String patientPhone,
+            String patientAddress,
             String programName,
             long createdAt,
             String visionSummary,
@@ -28,6 +32,8 @@ public class ReportRecord {
     ) {
         this.id = id;
         this.patientName = patientName;
+        this.patientPhone = patientPhone;
+        this.patientAddress = patientAddress;
         this.programName = programName;
         this.createdAt = createdAt;
         this.visionSummary = visionSummary;
@@ -43,6 +49,14 @@ public class ReportRecord {
 
     public String getPatientName() {
         return patientName;
+    }
+
+    public String getPatientPhone() {
+        return patientPhone;
+    }
+
+    public String getPatientAddress() {
+        return patientAddress;
     }
 
     public String getProgramName() {

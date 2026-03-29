@@ -118,14 +118,13 @@ public class PermissionDelegate {
             boolean hideDialog,
             @NonNull Callback callback
     ) {
-        this.callback = callback;
-        this.requestCode = requestCode;
-        if (hasPermissions(permissions)) {
-            callback.granted();
-            return;
-        }
-        Runnable requestAction = () -> ActivityCompat.requestPermissions(activity, permissions, requestCode);
-        requestInternal(hideDialog, requestAction);
+        requestPermissionsInternal(
+                permissions,
+                requestCode,
+                hideDialog,
+                callback,
+                () -> ActivityCompat.requestPermissions(activity, permissions, requestCode)
+        );
     }
 
     public void requestPermissions(
@@ -144,13 +143,28 @@ public class PermissionDelegate {
             boolean hideDialog,
             @NonNull Callback callback
     ) {
+        requestPermissionsInternal(
+                permissions,
+                requestCode,
+                hideDialog,
+                callback,
+                () -> fragment.requestPermissions(permissions, requestCode)
+        );
+    }
+
+    private void requestPermissionsInternal(
+            @NonNull String[] permissions,
+            int requestCode,
+            boolean hideDialog,
+            @NonNull Callback callback,
+            @NonNull Runnable requestAction
+    ) {
         this.callback = callback;
         this.requestCode = requestCode;
         if (hasPermissions(permissions)) {
             callback.granted();
             return;
         }
-        Runnable requestAction = () -> fragment.requestPermissions(permissions, requestCode);
         requestInternal(hideDialog, requestAction);
     }
 
@@ -160,13 +174,7 @@ public class PermissionDelegate {
         }
         dismissDialog();
 
-        List<String> deniedList = new ArrayList<>();
-        for (int index = 0; index < grantResults.length; index++) {
-            if (grantResults[index] != PackageManager.PERMISSION_GRANTED) {
-                deniedList.add(permissions[index]);
-            }
-        }
-
+        List<String> deniedList = collectDeniedPermissions(permissions, grantResults);
         if (deniedList.isEmpty()) {
             callback.granted();
             return;
@@ -183,6 +191,17 @@ public class PermissionDelegate {
         intent.setData(Uri.fromParts("package", context.getPackageName(), null));
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         context.startActivity(intent);
+    }
+
+    @NonNull
+    private List<String> collectDeniedPermissions(@NonNull String[] permissions, @NonNull int[] grantResults) {
+        List<String> deniedList = new ArrayList<>();
+        for (int index = 0; index < grantResults.length; index++) {
+            if (grantResults[index] != PackageManager.PERMISSION_GRANTED) {
+                deniedList.add(permissions[index]);
+            }
+        }
+        return deniedList;
     }
 
     private void requestInternal(boolean hideDialog, @NonNull Runnable requestAction) {

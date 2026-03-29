@@ -322,25 +322,30 @@ public class DeviceHistoryStore {
     ) {
         runBlocking(() -> {
             database.runInTransaction(() -> {
-                TrackedDeviceEntity device = getOrCreateDevice(deviceId, macAddress);
-                updateDeviceSummary(device, macAddress, remoteIp, remotePort, localIp, localPort, timestamp);
+                TrackedDeviceEntity device = prepareTrackedDevice(
+                        deviceId,
+                        macAddress,
+                        remoteIp,
+                        remotePort,
+                        localIp,
+                        localPort,
+                        timestamp
+                );
                 device.setCurrentlyConnected(connected);
                 device.setConnectionCount(device.getConnectionCount() + 1);
                 saveDevice(device);
 
-                DeviceLogEntity log = new DeviceLogEntity(
-                        null,
+                insertDeviceLog(
                         deviceId,
                         CATEGORY_CONNECTION,
                         connected ? ACTION_CONNECTED : ACTION_DISCONNECTED,
                         null,
                         remoteIp,
-                        remotePort > 0 ? remotePort : null,
+                        remotePort,
                         localIp,
-                        localPort > 0 ? localPort : null,
+                        localPort,
                         timestamp
                 );
-                deviceLogDao.insert(log);
                 trimDeviceLogs(deviceId);
             });
             trace("连接记录已入库，deviceId=" + deviceId
@@ -386,24 +391,29 @@ public class DeviceHistoryStore {
     ) {
         runBlocking(() -> {
             database.runInTransaction(() -> {
-                TrackedDeviceEntity device = getOrCreateDevice(deviceId, macAddress);
-                updateDeviceSummary(device, macAddress, remoteIp, remotePort, localIp, localPort, timestamp);
+                TrackedDeviceEntity device = prepareTrackedDevice(
+                        deviceId,
+                        macAddress,
+                        remoteIp,
+                        remotePort,
+                        localIp,
+                        localPort,
+                        timestamp
+                );
                 device.setCommunicationCount(device.getCommunicationCount() + 1);
                 saveDevice(device);
 
-                DeviceLogEntity log = new DeviceLogEntity(
-                        null,
+                insertDeviceLog(
                         deviceId,
                         CATEGORY_COMMUNICATION,
                         action,
                         sanitizeMessage(message),
                         remoteIp,
-                        remotePort > 0 ? remotePort : null,
+                        remotePort,
                         localIp,
-                        localPort > 0 ? localPort : null,
+                        localPort,
                         timestamp
                 );
-                deviceLogDao.insert(log);
                 trimDeviceLogs(deviceId);
             });
             trace("通信记录已入库，deviceId=" + deviceId
@@ -462,16 +472,17 @@ public class DeviceHistoryStore {
     }
 
     private TrackedDeviceEntity getOrCreateDevice(String deviceId, String macAddress) {
+        String normalizedMac = normalizeMacAddress(macAddress);
         TrackedDeviceEntity device = findDevice(deviceId);
         if (device == null) {
             device = new TrackedDeviceEntity();
             device.setDeviceId(deviceId);
-            device.setMacAddress(normalizeMacAddress(macAddress));
+            device.setMacAddress(normalizedMac);
             device.setCurrentlyConnected(false);
             device.setCommunicationCount(0);
             device.setConnectionCount(0);
-        } else if (!TextUtils.isEmpty(normalizeMacAddress(macAddress))) {
-            device.setMacAddress(normalizeMacAddress(macAddress));
+        } else if (!TextUtils.isEmpty(normalizedMac)) {
+            device.setMacAddress(normalizedMac);
         }
         return device;
     }
@@ -488,6 +499,20 @@ public class DeviceHistoryStore {
         }
     }
 
+    private TrackedDeviceEntity prepareTrackedDevice(
+            String deviceId,
+            String macAddress,
+            String remoteIp,
+            int remotePort,
+            String localIp,
+            int localPort,
+            long timestamp
+    ) {
+        TrackedDeviceEntity device = getOrCreateDevice(deviceId, macAddress);
+        updateDeviceSummary(device, macAddress, remoteIp, remotePort, localIp, localPort, timestamp);
+        return device;
+    }
+
     private void updateDeviceSummary(
             TrackedDeviceEntity device,
             String macAddress,
@@ -502,10 +527,35 @@ public class DeviceHistoryStore {
             device.setMacAddress(normalizedMac);
         }
         device.setLastKnownIp(remoteIp);
-        device.setLastKnownPort(remotePort > 0 ? remotePort : null);
+        device.setLastKnownPort(toNullablePort(remotePort));
         device.setLastLocalIp(localIp);
-        device.setLastLocalPort(localPort > 0 ? localPort : null);
+        device.setLastLocalPort(toNullablePort(localPort));
         device.setLastSeenAt(timestamp);
+    }
+
+    private void insertDeviceLog(
+            String deviceId,
+            String category,
+            String action,
+            String message,
+            String remoteIp,
+            int remotePort,
+            String localIp,
+            int localPort,
+            long timestamp
+    ) {
+        deviceLogDao.insert(new DeviceLogEntity(
+                null,
+                deviceId,
+                category,
+                action,
+                message,
+                remoteIp,
+                toNullablePort(remotePort),
+                localIp,
+                toNullablePort(localPort),
+                timestamp
+        ));
     }
 
     private void trimDeviceLogs(String deviceId) {
@@ -535,6 +585,10 @@ public class DeviceHistoryStore {
 
     private int safeInt(Number value) {
         return value == null ? 0 : value.intValue();
+    }
+
+    private Integer toNullablePort(int port) {
+        return port > 0 ? port : null;
     }
 
     private String sanitizeMessage(String message) {

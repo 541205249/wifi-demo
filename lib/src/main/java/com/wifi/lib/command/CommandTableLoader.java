@@ -17,6 +17,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -31,6 +32,7 @@ public final class CommandTableLoader {
     private static final String RULE_PREFIX = "prefix:";
     private static final String RULE_REGEX = "regex:";
     private static final String RULE_EXACT = "exact:";
+    private static final Map<String, String> HEADER_ALIASES = createHeaderAliases();
 
     @NonNull
     public CommandTable loadFromUri(@NonNull Context context, @NonNull Uri uri) throws IOException {
@@ -227,6 +229,12 @@ public final class CommandTableLoader {
     @NonNull
     private String aliasHeader(@NonNull String header) {
         String normalized = normalizeHeader(header);
+        String canonical = HEADER_ALIASES.get(normalized);
+        return canonical == null ? "" : canonical;
+    }
+
+    @NonNull
+    private static Map<String, String> createHeaderAliases() {
         Map<String, String> aliases = new HashMap<>();
         aliases.put("code", "code");
         aliases.put("编码", "code");
@@ -287,9 +295,7 @@ public final class CommandTableLoader {
 
         aliases.put("remark", "remark");
         aliases.put("备注", "remark");
-
-        String canonical = aliases.get(normalized);
-        return canonical == null ? "" : canonical;
+        return Collections.unmodifiableMap(aliases);
     }
 
     @NonNull

@@ -14,6 +14,8 @@ import java.io.IOException;
 public final class NetworkIdentityResolver {
     private static final String TAG = "NetworkResolver";
     private static final String ARP_TABLE_PATH = "/proc/net/arp";
+    private static final int MIN_ARP_COLUMNS = 4;
+    private static final int ARP_MAC_INDEX = 3;
     private static final int MAX_ATTEMPTS = 5;
     private static final long RETRY_DELAY_MS = 150L;
 
@@ -32,15 +34,8 @@ public final class NetworkIdentityResolver {
                 DLog.i(TAG, "ARP 表解析成功，ip=" + ipAddress + ", mac=" + macAddress + ", attempt=" + (attempt + 1));
                 return macAddress;
             }
-
-            if (attempt < MAX_ATTEMPTS - 1) {
-                try {
-                    Thread.sleep(RETRY_DELAY_MS * (attempt + 1));
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    DLog.w(TAG, "ARP 表解析被中断，ip=" + ipAddress, e);
-                    return null;
-                }
+            if (!waitBeforeNextAttempt(ipAddress, attempt)) {
+                return null;
             }
         }
         DLog.w(TAG, "ARP 表解析未命中，ip=" + ipAddress);
@@ -51,13 +46,8 @@ public final class NetworkIdentityResolver {
         try (BufferedReader reader = new BufferedReader(new FileReader(ARP_TABLE_PATH))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                String[] columns = line.trim().split("\\s+");
-                if (columns.length < 4) {
-                    continue;
-                }
-                if (ipAddress.equals(columns[0])) {
-                    String macAddress = DeviceHistoryStore.normalizeMacAddress(columns[3]);
-                    DLog.d(TAG, "从 ARP 行读取到 MAC=" + macAddress + ", ip=" + ipAddress);
+                String macAddress = findMacAddressInLine(ipAddress, line);
+                if (!TextUtils.isEmpty(macAddress)) {
                     return macAddress;
                 }
             }
@@ -65,6 +55,30 @@ public final class NetworkIdentityResolver {
             DLog.e(TAG, "读取 ARP 表失败，ip=" + ipAddress, e);
         }
         return null;
+    }
+
+    private static boolean waitBeforeNextAttempt(String ipAddress, int attempt) {
+        if (attempt >= MAX_ATTEMPTS - 1) {
+            return true;
+        }
+        try {
+            Thread.sleep(RETRY_DELAY_MS * (attempt + 1));
+            return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            DLog.w(TAG, "ARP 表解析被中断，ip=" + ipAddress, e);
+            return false;
+        }
+    }
+
+    private static String findMacAddressInLine(String ipAddress, String line) {
+        String[] columns = line.trim().split("\\s+");
+        if (columns.length < MIN_ARP_COLUMNS || !ipAddress.equals(columns[0])) {
+            return null;
+        }
+        String macAddress = DeviceHistoryStore.normalizeMacAddress(columns[ARP_MAC_INDEX]);
+        DLog.d(TAG, "从 ARP 行读取到 MAC=" + macAddress + ", ip=" + ipAddress);
+        return macAddress;
     }
 }
 

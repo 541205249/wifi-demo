@@ -14,8 +14,16 @@ import com.example.wifidemo.databinding.ItemBrvahWorkflowStepBinding;
 import com.example.wifidemo.sample.brvah.model.BrvahWorkflowItem;
 
 public class WorkflowTimelineAdapter extends BaseMultiItemAdapter<BrvahWorkflowItem> {
+    private static final int ACTION_BADGE_COLOR_RES = R.color.brand_secondary;
+
     public WorkflowTimelineAdapter() {
         onItemViewType((position, list) -> list.get(position).getViewType());
+        addHeaderItemType();
+        addStepItemType();
+        addActionItemType();
+    }
+
+    private void addHeaderItemType() {
         addItemType(BrvahWorkflowItem.TYPE_HEADER,
                 new BaseMultiItemAdapter.OnMultiItemAdapterListener<BrvahWorkflowItem, BindingHolder<ItemBrvahWorkflowHeaderBinding>>() {
                     @NonNull
@@ -25,17 +33,17 @@ public class WorkflowTimelineAdapter extends BaseMultiItemAdapter<BrvahWorkflowI
                             @NonNull android.view.ViewGroup parent,
                             int viewType
                     ) {
-                        return new BindingHolder<>(ItemBrvahWorkflowHeaderBinding.inflate(LayoutInflater.from(context), parent, false));
+                        return createHeaderHolder(context, parent);
                     }
 
                     @Override
                     public void onBind(@NonNull BindingHolder<ItemBrvahWorkflowHeaderBinding> holder, int position, BrvahWorkflowItem item) {
-                        holder.binding.tvWorkflowHeaderTitle.setText(item.getTitle());
-                        holder.binding.tvWorkflowHeaderSubtitle.setText(item.getSubtitle());
-                        holder.binding.tvWorkflowHeaderDetail.setText(item.getDetail());
-                        holder.binding.tvWorkflowHeaderBadge.setText(item.getStatusLabel());
+                        bindHeaderItem(holder.binding, item);
                     }
                 });
+    }
+
+    private void addStepItemType() {
         addItemType(BrvahWorkflowItem.TYPE_STEP,
                 new BaseMultiItemAdapter.OnMultiItemAdapterListener<BrvahWorkflowItem, BindingHolder<ItemBrvahWorkflowStepBinding>>() {
                     @NonNull
@@ -45,18 +53,17 @@ public class WorkflowTimelineAdapter extends BaseMultiItemAdapter<BrvahWorkflowI
                             @NonNull android.view.ViewGroup parent,
                             int viewType
                     ) {
-                        return new BindingHolder<>(ItemBrvahWorkflowStepBinding.inflate(LayoutInflater.from(context), parent, false));
+                        return createStepHolder(context, parent);
                     }
 
                     @Override
                     public void onBind(@NonNull BindingHolder<ItemBrvahWorkflowStepBinding> holder, int position, BrvahWorkflowItem item) {
-                        holder.binding.tvWorkflowStepIndex.setText(String.valueOf(position));
-                        holder.binding.tvWorkflowStepTitle.setText(item.getTitle());
-                        holder.binding.tvWorkflowStepSubtitle.setText(item.getSubtitle());
-                        holder.binding.tvWorkflowStepDetail.setText(item.getDetail());
-                        holder.binding.tvWorkflowStepState.setText(item.getStatusLabel());
+                        bindStepItem(holder.binding, position, item);
                     }
                 });
+    }
+
+    private void addActionItemType() {
         addItemType(BrvahWorkflowItem.TYPE_ACTION,
                 new BaseMultiItemAdapter.OnMultiItemAdapterListener<BrvahWorkflowItem, BindingHolder<ItemBrvahWorkflowActionBinding>>() {
                     @NonNull
@@ -66,20 +73,73 @@ public class WorkflowTimelineAdapter extends BaseMultiItemAdapter<BrvahWorkflowI
                             @NonNull android.view.ViewGroup parent,
                             int viewType
                     ) {
-                        return new BindingHolder<>(ItemBrvahWorkflowActionBinding.inflate(LayoutInflater.from(context), parent, false));
+                        return createActionHolder(context, parent);
                     }
 
                     @Override
                     public void onBind(@NonNull BindingHolder<ItemBrvahWorkflowActionBinding> holder, int position, BrvahWorkflowItem item) {
-                        holder.binding.tvWorkflowActionTitle.setText(item.getTitle());
-                        holder.binding.tvWorkflowActionSubtitle.setText(item.getSubtitle());
-                        holder.binding.tvWorkflowActionDetail.setText(item.getDetail());
-                        holder.binding.tvWorkflowActionBadge.setText(item.getStatusLabel());
-                        holder.binding.tvWorkflowActionBadge.setTextColor(ContextCompat.getColor(
-                                holder.binding.getRoot().getContext(),
-                                R.color.brand_secondary
-                        ));
+                        bindActionItem(holder.binding, item);
                     }
                 });
+    }
+
+    @NonNull
+    private BindingHolder<ItemBrvahWorkflowHeaderBinding> createHeaderHolder(
+            @NonNull Context context,
+            @NonNull android.view.ViewGroup parent
+    ) {
+        return new BindingHolder<>(ItemBrvahWorkflowHeaderBinding.inflate(LayoutInflater.from(context), parent, false));
+    }
+
+    @NonNull
+    private BindingHolder<ItemBrvahWorkflowStepBinding> createStepHolder(
+            @NonNull Context context,
+            @NonNull android.view.ViewGroup parent
+    ) {
+        return new BindingHolder<>(ItemBrvahWorkflowStepBinding.inflate(LayoutInflater.from(context), parent, false));
+    }
+
+    @NonNull
+    private BindingHolder<ItemBrvahWorkflowActionBinding> createActionHolder(
+            @NonNull Context context,
+            @NonNull android.view.ViewGroup parent
+    ) {
+        return new BindingHolder<>(ItemBrvahWorkflowActionBinding.inflate(LayoutInflater.from(context), parent, false));
+    }
+
+    private void bindHeaderItem(
+            @NonNull ItemBrvahWorkflowHeaderBinding binding,
+            @NonNull BrvahWorkflowItem item
+    ) {
+        binding.tvWorkflowHeaderTitle.setText(item.getTitle());
+        binding.tvWorkflowHeaderSubtitle.setText(item.getSubtitle());
+        binding.tvWorkflowHeaderDetail.setText(item.getDetail());
+        binding.tvWorkflowHeaderBadge.setText(item.getStatusLabel());
+    }
+
+    private void bindStepItem(
+            @NonNull ItemBrvahWorkflowStepBinding binding,
+            int position,
+            @NonNull BrvahWorkflowItem item
+    ) {
+        binding.tvWorkflowStepIndex.setText(String.valueOf(position));
+        binding.tvWorkflowStepTitle.setText(item.getTitle());
+        binding.tvWorkflowStepSubtitle.setText(item.getSubtitle());
+        binding.tvWorkflowStepDetail.setText(item.getDetail());
+        binding.tvWorkflowStepState.setText(item.getStatusLabel());
+    }
+
+    private void bindActionItem(
+            @NonNull ItemBrvahWorkflowActionBinding binding,
+            @NonNull BrvahWorkflowItem item
+    ) {
+        binding.tvWorkflowActionTitle.setText(item.getTitle());
+        binding.tvWorkflowActionSubtitle.setText(item.getSubtitle());
+        binding.tvWorkflowActionDetail.setText(item.getDetail());
+        binding.tvWorkflowActionBadge.setText(item.getStatusLabel());
+        binding.tvWorkflowActionBadge.setTextColor(ContextCompat.getColor(
+                binding.getRoot().getContext(),
+                ACTION_BADGE_COLOR_RES
+        ));
     }
 }

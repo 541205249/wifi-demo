@@ -24,12 +24,7 @@ public abstract class BaseMvvmFragment<VB extends ViewBinding, VM extends BaseVi
 
     @Override
     protected void onBindingCreated(@Nullable Bundle savedInstanceState) {
-        Application application = requireActivity().getApplication();
-        ViewModelStoreOwner owner = useActivityViewModel() ? requireActivity() : this;
-        viewModel = new ViewModelProvider(
-                owner,
-                ViewModelProvider.AndroidViewModelFactory.getInstance(application)
-        ).get(getViewModelClass());
+        viewModel = createViewModel();
         observeBaseState();
         onViewModelCreated(viewModel);
         super.onBindingCreated(savedInstanceState);
@@ -46,20 +41,49 @@ public abstract class BaseMvvmFragment<VB extends ViewBinding, VM extends BaseVi
         return true;
     }
 
+    @NonNull
+    private VM createViewModel() {
+        Application application = requireActivity().getApplication();
+        return new ViewModelProvider(
+                resolveViewModelStoreOwner(),
+                createViewModelFactory(application)
+        ).get(getViewModelClass());
+    }
+
+    @NonNull
+    private ViewModelProvider.Factory createViewModelFactory(@NonNull Application application) {
+        return ViewModelProvider.AndroidViewModelFactory.getInstance(application);
+    }
+
+    @NonNull
+    private ViewModelStoreOwner resolveViewModelStoreOwner() {
+        return useActivityViewModel() ? requireActivity() : this;
+    }
+
     private void observeBaseState() {
-        if (enableDefaultLoadingObserver()) {
-            viewModel.getLoadingLiveData().observe(getViewLifecycleOwner(), loading -> {
-                if (Boolean.TRUE.equals(loading)) {
-                    getPageLoadingUI().show();
-                } else {
-                    getPageLoadingUI().hide();
-                }
-            });
+        observeLoadingState();
+        observeMessageState();
+    }
+
+    private void observeLoadingState() {
+        if (!enableDefaultLoadingObserver()) {
+            return;
         }
-        if (enableDefaultMessageObserver()) {
-            viewModel.getMessageEvent().observe(getViewLifecycleOwner(), new EventObserver<>(
-                    Toasty::showShort
-            ));
+        viewModel.getLoadingLiveData().observe(getViewLifecycleOwner(), loading -> {
+            if (Boolean.TRUE.equals(loading)) {
+                getPageLoadingUI().show();
+            } else {
+                getPageLoadingUI().hide();
+            }
+        });
+    }
+
+    private void observeMessageState() {
+        if (!enableDefaultMessageObserver()) {
+            return;
         }
+        viewModel.getMessageEvent().observe(getViewLifecycleOwner(), new EventObserver<>(
+                Toasty::showShort
+        ));
     }
 }

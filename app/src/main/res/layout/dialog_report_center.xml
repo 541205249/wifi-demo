@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="1300dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_workbench_dialog_surface"
+    android:orientation="vertical"
+    android:padding="26dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvReportPatientName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="张晨曦"
+                android:textColor="@color/console_text_dark"
+                android:textSize="28sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvReportPatientMeta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="13800138000 | 上海市浦东新区"
+                android:textColor="@color/console_text_soft"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvReportCenterTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="验光报告"
+            android:textColor="@color/console_blue_bar"
+            android:textSize="34sp"
+            android:textStyle="bold" />
+
+        <HorizontalScrollView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="24dp"
+            android:layout_weight="1"
+            android:fillViewport="true"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnReportActionSettings"
+                    android:layout_width="90dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_workbench_action_button"
+                    android:backgroundTint="@android:color/transparent"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:text="设置"
+                    android:textColor="@color/console_text_dark"
+                    android:textSize="16sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnReportActionHistory"
+                    android:layout_width="90dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="10dp"
+                    android:background="@drawable/bg_workbench_action_button"
+                    android:backgroundTint="@android:color/transparent"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:text="历史"
+                    android:textColor="@color/console_text_dark"
+                    android:textSize="16sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnReportActionPrint"
+                    android:layout_width="90dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="10dp"
+                    android:background="@drawable/bg_workbench_action_button"
+                    android:backgroundTint="@android:color/transparent"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:text="打印"
+                    android:textColor="@color/console_text_dark"
+                    android:textSize="16sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnReportActionSave"
+                    android:layout_width="90dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="10dp"
+                    android:background="@drawable/bg_workbench_primary_button"
+                    android:backgroundTint="@android:color/transparent"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:text="保存"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnReportActionImport"
+                    android:layout_width="90dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="10dp"
+                    android:background="@drawable/bg_workbench_action_button"
+                    android:backgroundTint="@android:color/transparent"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:text="导入"
+                    android:textColor="@color/console_text_dark"
+                    android:textSize="16sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnReportActionQr"
+                    android:layout_width="90dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="10dp"
+                    android:background="@drawable/bg_workbench_action_button"
+                    android:backgroundTint="@android:color/transparent"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:text="二维码"
+                    android:textColor="@color/console_text_dark"
+                    android:textSize="16sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnReportClose"
+                    android:layout_width="90dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="10dp"
+                    android:background="@drawable/bg_workbench_action_button"
+                    android:backgroundTint="@android:color/transparent"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:text="返回"
+                    android:textColor="@color/console_text_dark"
+                    android:textSize="16sp" />
+            </LinearLayout>
+        </HorizontalScrollView>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="22dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnReportSectionCurrent"
+            android:layout_width="170dp"
+            android:layout_height="52dp"
+            android:background="@drawable/bg_workbench_tab_active"
+            android:backgroundTint="@android:color/transparent"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="当前报告"
+            android:textColor="@color/workbench_accent"
+            android:textSize="19sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnReportSectionHistory"
+            android:layout_width="170dp"
+            android:layout_height="52dp"
+            android:layout_marginStart="14dp"
+            android:background="@drawable/bg_workbench_tab_inactive"
+            android:backgroundTint="@android:color/transparent"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="历史报告"
+            android:textColor="@color/console_text_dark"
+            android:textSize="19sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnReportSectionTemp"
+            android:layout_width="170dp"
+            android:layout_height="52dp"
+            android:layout_marginStart="14dp"
+            android:background="@drawable/bg_workbench_tab_inactive"
+            android:backgroundTint="@android:color/transparent"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="临时数据"
+            android:textColor="@color/console_text_dark"
+            android:textSize="19sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/layoutReportSubTabs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnReportTabVision"
+            android:layout_width="140dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_workbench_tab_active"
+            android:backgroundTint="@android:color/transparent"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="视力"
+            android:textColor="@color/workbench_accent"
+            android:textSize="18sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnReportTabFunction"
+            android:layout_width="140dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="12dp"
+            android:background="@drawable/bg_workbench_tab_inactive"
+            android:backgroundTint="@android:color/transparent"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="视功能"
+            android:textColor="@color/console_text_dark"
+            android:textSize="18sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnReportTabPrescription"
+            android:layout_width="140dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="12dp"
+            android:background="@drawable/bg_workbench_tab_inactive"
+            android:backgroundTint="@android:color/transparent"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="处方"
+            android:textColor="@color/console_text_dark"
+            android:textSize="18sp" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="650dp"
+        android:layout_marginTop="18dp"
+        android:background="@drawable/bg_workbench_surface_panel"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:id="@+id/layoutReportContent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="18dp" />
+    </ScrollView>
+
+    <TextView
+        android:id="@+id/tvReportFooterHint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:gravity="center"
+        android:text="报告内容会跟随工作台实时变化，保存后进入本地历史。"
+        android:textColor="@color/console_text_soft"
+        android:textSize="15sp" />
+
+</LinearLayout>

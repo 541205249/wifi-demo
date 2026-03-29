@@ -21,10 +21,17 @@ public class CommunicationDemoActivity extends BaseMvvmActivity<ActivityCommunic
 
     @Override
     protected void initWidgets(@Nullable Bundle savedInstanceState) {
+        initPageChrome();
+        bindScenarioActions();
+    }
+
+    private void initPageChrome() {
         getStatusBarUI().setLightMode();
         getPageTitleUI().initTitle(getString(R.string.demo_communication_title));
         getPageTitleUI().initTvRight(getString(R.string.demo_common_intro), v -> showIntroDialog());
+    }
 
+    private void bindScenarioActions() {
         binding.btnScenarioAction.setOnClickListener(v -> viewModel.showActionControl());
         binding.btnScenarioFields.setOnClickListener(v -> viewModel.showFieldSetting());
         binding.btnScenarioQuery.setOnClickListener(v -> viewModel.showQueryResponse());
@@ -43,15 +50,23 @@ public class CommunicationDemoActivity extends BaseMvvmActivity<ActivityCommunic
     }
 
     private void renderState(@NonNull CommunicationDemoUiState state) {
+        renderStateTexts(state);
+        renderStatusColor(state.isLastSuccess());
+    }
+
+    private void renderStateTexts(@NonNull CommunicationDemoUiState state) {
         binding.tvStatus.setText(state.getStatusText());
         binding.tvScenarioTitle.setText(state.getScenarioTitle());
         binding.tvMeaning.setText(state.getMeaningText());
         binding.tvExample.setText(state.getExampleText());
         binding.tvFlow.setText(state.getFlowText());
         binding.tvConsole.setText(state.getConsoleText());
+    }
+
+    private void renderStatusColor(boolean lastSuccess) {
         binding.tvStatus.setTextColor(ContextCompat.getColor(
                 this,
-                state.isLastSuccess() ? R.color.brand_success : R.color.brand_error
+                lastSuccess ? R.color.brand_success : R.color.brand_error
         ));
     }
 

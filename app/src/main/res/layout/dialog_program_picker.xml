@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="1120dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_workbench_dialog_surface"
+    android:orientation="vertical"
+    android:padding="28dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="程序"
+        android:textColor="@color/console_text_dark"
+        android:textSize="30sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:text="按业务模板选择当前程序，或查看完整步骤配置"
+        android:textColor="@color/console_text_soft"
+        android:textSize="17sp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="440dp"
+        android:layout_marginTop="22dp"
+        android:fillViewport="true"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/layoutProgramOptions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </ScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCreateProgramDialog"
+            android:layout_width="220dp"
+            android:layout_height="56dp"
+            android:background="@drawable/bg_workbench_primary_button"
+            android:backgroundTint="@android:color/transparent"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="+ 新增程序"
+            android:textColor="@android:color/white"
+            android:textSize="20sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCloseProgramDialog"
+            android:layout_width="220dp"
+            android:layout_height="56dp"
+            android:layout_marginStart="34dp"
+            android:background="@drawable/bg_workbench_action_button"
+            android:backgroundTint="@android:color/transparent"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="返回"
+            android:textColor="@color/console_text_dark"
+            android:textSize="20sp" />
+    </LinearLayout>
+
+</LinearLayout>

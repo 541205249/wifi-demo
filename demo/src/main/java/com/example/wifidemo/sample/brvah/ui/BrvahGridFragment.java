@@ -2,6 +2,7 @@ package com.example.wifidemo.sample.brvah.ui;
 
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.chad.library.adapter4.BaseQuickAdapter;
@@ -29,16 +30,7 @@ public class BrvahGridFragment extends BaseBrvahScenarioFragment {
         adapter = new VisionChartAdapter();
         adapter.setAnimationEnable(true);
         adapter.setItemAnimation(BaseQuickAdapter.AnimationType.ScaleIn);
-        adapter.setOnItemClickListener((baseQuickAdapter, view, position) -> {
-            VisionChart item = adapter.getItem(position);
-            if (item == null) {
-                return;
-            }
-            selectedChartId = item.getId();
-            adapter.setSelectedChartId(selectedChartId);
-            adapter.notifyDataSetChanged();
-            viewModel.notifyAction("预览视标：" + item.getTitle());
-        });
+        adapter.setOnItemClickListener((baseQuickAdapter, view, position) -> handleChartClick(position));
         getScenarioRecyclerView().setLayoutManager(new QuickGridLayoutManager(requireContext(), 2));
         getScenarioRecyclerView().setAdapter(adapter);
     }
@@ -49,23 +41,56 @@ public class BrvahGridFragment extends BaseBrvahScenarioFragment {
     }
 
     private void renderCharts(List<VisionChart> charts) {
-        List<VisionChart> safeList = charts == null ? new ArrayList<>() : new ArrayList<>(charts);
-        if (!safeList.isEmpty()) {
-            boolean selectedExists = false;
-            for (VisionChart chart : safeList) {
-                if (chart.getId().equals(selectedChartId)) {
-                    selectedExists = true;
-                    break;
-                }
-            }
-            if (!selectedExists) {
-                selectedChartId = safeList.get(0).getId();
-            }
-        } else {
-            selectedChartId = null;
-        }
+        List<VisionChart> safeList = copyCharts(charts);
+        selectedChartId = resolveSelectedChartId(safeList, selectedChartId);
         adapter.setSelectedChartId(selectedChartId);
         adapter.submitList(safeList);
-        setScenarioState("当前共 " + safeList.size() + " 张视标卡片，已选中：" + (selectedChartId == null ? "无" : selectedChartId) + "。");
+        setScenarioState(buildScenarioState(safeList, selectedChartId));
+    }
+
+    private void handleChartClick(int position) {
+        VisionChart item = adapter.getItem(position);
+        if (item == null) {
+            return;
+        }
+        selectedChartId = item.getId();
+        adapter.setSelectedChartId(selectedChartId);
+        adapter.notifyDataSetChanged();
+        viewModel.notifyAction("预览视标：" + item.getTitle());
+    }
+
+    @NonNull
+    private List<VisionChart> copyCharts(@Nullable List<VisionChart> charts) {
+        return charts == null ? new ArrayList<>() : new ArrayList<>(charts);
+    }
+
+    @Nullable
+    private String resolveSelectedChartId(
+            @NonNull List<VisionChart> charts,
+            @Nullable String currentSelectedChartId
+    ) {
+        if (charts.isEmpty()) {
+            return null;
+        }
+        return containsSelectedChart(charts, currentSelectedChartId)
+                ? currentSelectedChartId
+                : charts.get(0).getId();
+    }
+
+    private boolean containsSelectedChart(@NonNull List<VisionChart> charts, @Nullable String chartId) {
+        if (chartId == null) {
+            return false;
+        }
+        for (VisionChart chart : charts) {
+            if (chartId.equals(chart.getId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @NonNull
+    private String buildScenarioState(@NonNull List<VisionChart> charts, @Nullable String chartId) {
+        return "当前共 " + charts.size() + " 张视标卡片，已选中：" + (chartId == null ? "无" : chartId) + "。";
     }
 }

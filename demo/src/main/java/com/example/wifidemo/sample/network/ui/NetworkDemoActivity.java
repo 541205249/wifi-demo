@@ -21,14 +21,8 @@ public class NetworkDemoActivity extends BaseMvvmActivity<ActivityNetworkDemoBin
 
     @Override
     protected void initWidgets(@Nullable Bundle savedInstanceState) {
-        getStatusBarUI().setLightMode();
-        getPageTitleUI().initTitle(getString(R.string.demo_network_title));
-        getPageTitleUI().initTvRight(getString(R.string.demo_common_intro), v -> showIntroDialog());
-
-        binding.btnSendGet.setOnClickListener(v -> viewModel.runGetExample());
-        binding.btnSendPostJson.setOnClickListener(v -> viewModel.runPostJsonExample());
-        binding.btnSendPostForm.setOnClickListener(v -> viewModel.runPostFormExample());
-        binding.btnUploadFile.setOnClickListener(v -> viewModel.runUploadExample());
+        initPageChrome();
+        bindScenarioActions();
     }
 
     @Override
@@ -43,18 +37,40 @@ public class NetworkDemoActivity extends BaseMvvmActivity<ActivityNetworkDemoBin
         binding.tvScenarioTitle.setText(state.getScenarioTitle());
         binding.tvRequestPreview.setText(state.getRequestPreview());
         binding.tvResponsePreview.setText(state.getResponsePreview());
-        binding.tvStatus.setTextColor(ContextCompat.getColor(
-                this,
-                state.isLastSuccess() ? R.color.brand_success : R.color.brand_error
-        ));
+        applyStatusTextColor(state.isLastSuccess());
     }
 
     private void showIntroDialog() {
+        createIntroDialog().show();
+    }
+
+    private void initPageChrome() {
+        getStatusBarUI().setLightMode();
+        getPageTitleUI().initTitle(getString(R.string.demo_network_title));
+        getPageTitleUI().initTvRight(getString(R.string.demo_common_intro), v -> showIntroDialog());
+    }
+
+    private void bindScenarioActions() {
+        binding.btnSendGet.setOnClickListener(v -> viewModel.runGetExample());
+        binding.btnSendPostJson.setOnClickListener(v -> viewModel.runPostJsonExample());
+        binding.btnSendPostForm.setOnClickListener(v -> viewModel.runPostFormExample());
+        binding.btnUploadFile.setOnClickListener(v -> viewModel.runUploadExample());
+    }
+
+    private void applyStatusTextColor(boolean lastSuccess) {
+        binding.tvStatus.setTextColor(ContextCompat.getColor(
+                this,
+                lastSuccess ? R.color.brand_success : R.color.brand_error
+        ));
+    }
+
+    @NonNull
+    private BaseConfirmDialog createIntroDialog() {
         BaseConfirmDialog dialog = new BaseConfirmDialog(this);
         dialog.setTitleTxt(getString(R.string.demo_network_intro_title));
         dialog.setContentTxt(getString(R.string.demo_network_intro_content));
         dialog.setOkTxt(getString(R.string.demo_common_known));
         dialog.hideCancelTv();
-        dialog.show();
+        return dialog;
     }
 }

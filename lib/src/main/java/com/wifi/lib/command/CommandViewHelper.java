@@ -22,12 +22,7 @@ public final class CommandViewHelper {
             @Nullable String codeExplanation
     ) {
         view.setOnLongClickListener(v -> {
-            StringBuilder builder = new StringBuilder();
-            builder.append("编码：").append(CommandCode.of(code).getValue());
-            if (!TextUtils.isEmpty(codeExplanation)) {
-                builder.append("\n解释：").append(codeExplanation.trim());
-            }
-            Toasty.showLong(builder.toString());
+            Toasty.showLong(buildCodeHintText(code, codeExplanation));
             return true;
         });
     }
@@ -48,5 +43,15 @@ public final class CommandViewHelper {
     ) {
         view.setOnClickListener(clickListener);
         attachLongPressCodeHint(view, code, codeExplanation);
+    }
+
+    @NonNull
+    private static String buildCodeHintText(@NonNull String code, @Nullable String codeExplanation) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("编码：").append(CommandCode.of(code).getValue());
+        if (!TextUtils.isEmpty(codeExplanation)) {
+            builder.append("\n解释：").append(codeExplanation.trim());
+        }
+        return builder.toString();
     }
 }

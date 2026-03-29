@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="1160dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_workbench_dialog_surface"
+    android:orientation="vertical"
+    android:padding="28dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="WiFi 服务 / 设备连接"
+        android:textColor="@color/console_text_dark"
+        android:textSize="28sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tvDeviceServiceState"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:textColor="@color/console_text_dark"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tvDeviceServiceEndpoint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="@color/console_text_soft"
+        android:textSize="15sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnToggleDeviceService"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_workbench_primary_button"
+            android:backgroundTint="@android:color/transparent"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="启动服务"
+            android:textColor="@android:color/white"
+            android:textSize="18sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnRefreshDeviceState"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_workbench_action_button"
+            android:backgroundTint="@android:color/transparent"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="刷新状态"
+            android:textColor="@color/console_text_dark"
+            android:textSize="18sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnQueryBoundDevice"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_workbench_action_button"
+            android:backgroundTint="@android:color/transparent"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="查询主设备"
+            android:textColor="@color/console_text_dark"
+            android:textSize="18sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnUnbindDevice"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_workbench_action_button"
+            android:backgroundTint="@android:color/transparent"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="解除绑定"
+            android:textColor="@color/console_text_dark"
+            android:textSize="18sp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvCurrentBoundDevice"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:background="@drawable/bg_workbench_surface_panel"
+        android:padding="14dp"
+        android:textColor="@color/console_text_dark"
+        android:textSize="16sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:baselineAligned="false"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="在线设备"
+                android:textColor="@color/console_text_dark"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="280dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_workbench_surface_panel"
+                android:fillViewport="true"
+                android:padding="12dp"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/layoutOnlineDevices"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </ScrollView>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="18dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="最近连接记录"
+                android:textColor="@color/console_text_dark"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="280dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_workbench_surface_panel"
+                android:fillViewport="true"
+                android:padding="12dp"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/layoutKnownDevices"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </ScrollView>
+        </LinearLayout>
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:text="连接日志"
+        android:textColor="@color/console_text_dark"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tvDeviceLogs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/bg_workbench_surface_panel"
+        android:fontFamily="monospace"
+        android:minLines="5"
+        android:padding="14dp"
+        android:textColor="@color/console_text_soft"
+        android:textSize="13sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="22dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCloseDeviceDialog"
+            android:layout_width="220dp"
+            android:layout_height="54dp"
+            android:background="@drawable/bg_workbench_action_button"
+            android:backgroundTint="@android:color/transparent"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="返回"
+            android:textColor="@color/console_text_dark"
+            android:textSize="20sp" />
+    </LinearLayout>
+
+</LinearLayout>

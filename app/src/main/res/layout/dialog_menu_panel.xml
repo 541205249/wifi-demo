@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="700dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_workbench_dialog_surface"
+    android:orientation="vertical"
+    android:padding="30dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="设置"
+        android:textColor="@color/console_text_dark"
+        android:textSize="28sp"
+        android:textStyle="bold" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnMenuCharts"
+        android:layout_width="match_parent"
+        android:layout_height="58dp"
+        android:layout_marginTop="26dp"
+        android:background="@drawable/bg_workbench_primary_button"
+        android:backgroundTint="@android:color/transparent"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:text="图表"
+        android:textColor="@android:color/white"
+        android:textSize="20sp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:text="设定要使用的视力表装置，设定检测时使用的视力表页和视力表"
+        android:textColor="@color/console_text_soft"
+        android:textSize="16sp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnMenuDeviceConnection"
+        android:layout_width="match_parent"
+        android:layout_height="58dp"
+        android:layout_marginTop="18dp"
+        android:background="@drawable/bg_workbench_primary_button"
+        android:backgroundTint="@android:color/transparent"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:text="设备连接"
+        android:textColor="@android:color/white"
+        android:textSize="20sp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:text="设定 WiFi 通信服务，连接主机、打印机和扫码设备"
+        android:textColor="@color/console_text_soft"
+        android:textSize="16sp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnMenuProgram"
+        android:layout_width="match_parent"
+        android:layout_height="58dp"
+        android:layout_marginTop="18dp"
+        android:background="@drawable/bg_workbench_primary_button"
+        android:backgroundTint="@android:color/transparent"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:text="程序"
+        android:textColor="@android:color/white"
+        android:textSize="20sp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:text="设定或编辑所选的程序"
+        android:textColor="@color/console_text_soft"
+        android:textSize="16sp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnMenuTimeLanguage"
+        android:layout_width="match_parent"
+        android:layout_height="58dp"
+        android:layout_marginTop="18dp"
+        android:background="@drawable/bg_workbench_primary_button"
+        android:backgroundTint="@android:color/transparent"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:text="时间与语言"
+        android:textColor="@android:color/white"
+        android:textSize="20sp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:text="设定界面语言、持续显示项和本地时间"
+        android:textColor="@color/console_text_soft"
+        android:textSize="16sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="26dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnMenuClose"
+            android:layout_width="220dp"
+            android:layout_height="54dp"
+            android:background="@drawable/bg_workbench_action_button"
+            android:backgroundTint="@android:color/transparent"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="返回"
+            android:textColor="@color/console_text_dark"
+            android:textSize="20sp" />
+    </LinearLayout>
+
+</LinearLayout>

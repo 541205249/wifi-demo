@@ -5,6 +5,7 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -14,6 +15,7 @@ import androidx.core.content.ContextCompat;
 import com.example.wifidemo.R;
 import com.example.wifidemo.databinding.FragmentDemoFeatureBinding;
 import com.wifi.lib.baseui.BaseConfirmDialog;
+import com.wifi.lib.baseui.delegate.PermissionDelegate;
 import com.wifi.lib.mvvm.BaseMvvmFragment;
 
 import java.util.List;
@@ -46,13 +48,7 @@ public class DemoFeatureFragment extends BaseMvvmFragment<FragmentDemoFeatureBin
     protected void initWidgets(@Nullable Bundle savedInstanceState) {
         binding.btnRefreshRecords.setOnClickListener(v -> viewModel.refreshRecords());
         binding.btnAddRecord.setOnClickListener(v -> viewModel.addMockRecord());
-        binding.btnSaveNote.setOnClickListener(v -> {
-            String note = binding.etNote.getText() == null ? "" : binding.etNote.getText().toString().trim();
-            viewModel.appendNote(note);
-            if (!TextUtils.isEmpty(note)) {
-                binding.etNote.setText("");
-            }
-        });
+        binding.btnSaveNote.setOnClickListener(v -> handleSaveNote());
         binding.btnShowConfirm.setOnClickListener(v -> showConfirmDialog());
         binding.btnShowSheet.setOnClickListener(v -> new DemoTipsBottomSheetDialog(requireContext()).show());
         binding.btnRequestPermission.setOnClickListener(v -> requestNotificationPermission());
@@ -66,27 +62,54 @@ public class DemoFeatureFragment extends BaseMvvmFragment<FragmentDemoFeatureBin
     private void renderRecords(List<String> records) {
         binding.layoutRecords.removeAllViews();
         if (records == null || records.isEmpty()) {
-            TextView emptyView = new TextView(requireContext());
-            emptyView.setText("暂无演示记录");
-            emptyView.setTextColor(requireContext().getColor(R.color.brand_text_secondary));
-            binding.layoutRecords.addView(emptyView);
+            renderEmptyRecordsHint();
             return;
         }
         int limit = Math.min(records.size(), 8);
         for (int index = 0; index < limit; index++) {
-            TextView recordView = new TextView(requireContext());
-            recordView.setText(records.get(index));
-            recordView.setBackgroundResource(R.drawable.demo_record_bg);
-            recordView.setPadding(dp(12), dp(12), dp(12), dp(12));
-            recordView.setTextColor(requireContext().getColor(R.color.brand_text_primary));
-            android.widget.LinearLayout.LayoutParams params = new android.widget.LinearLayout.LayoutParams(
-                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
-                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
-            );
-            params.bottomMargin = dp(8);
-            recordView.setLayoutParams(params);
-            binding.layoutRecords.addView(recordView);
+            binding.layoutRecords.addView(createRecordView(records.get(index)));
         }
+    }
+
+    private void handleSaveNote() {
+        String note = readNoteInput();
+        viewModel.appendNote(note);
+        if (!TextUtils.isEmpty(note)) {
+            binding.etNote.setText("");
+        }
+    }
+
+    @NonNull
+    private String readNoteInput() {
+        return binding.etNote.getText() == null ? "" : binding.etNote.getText().toString().trim();
+    }
+
+    private void renderEmptyRecordsHint() {
+        TextView emptyView = new TextView(requireContext());
+        emptyView.setText("暂无演示记录");
+        emptyView.setTextColor(requireContext().getColor(R.color.brand_text_secondary));
+        binding.layoutRecords.addView(emptyView);
+    }
+
+    @NonNull
+    private TextView createRecordView(@NonNull String record) {
+        TextView recordView = new TextView(requireContext());
+        recordView.setText(record);
+        recordView.setBackgroundResource(R.drawable.demo_record_bg);
+        recordView.setPadding(dp(12), dp(12), dp(12), dp(12));
+        recordView.setTextColor(requireContext().getColor(R.color.brand_text_primary));
+        recordView.setLayoutParams(createRecordLayoutParams());
+        return recordView;
+    }
+
+    @NonNull
+    private LinearLayout.LayoutParams createRecordLayoutParams() {
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        params.bottomMargin = dp(8);
+        return params;
     }
 
     private void showConfirmDialog() {
@@ -98,31 +121,44 @@ public class DemoFeatureFragment extends BaseMvvmFragment<FragmentDemoFeatureBin
     }
 
     private void requestNotificationPermission() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+        if (canUseNotificationWithoutRuntimeRequest() || hasNotificationPermission()) {
             viewModel.updatePermissionState(true);
             return;
         }
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS)
-                == PackageManager.PERMISSION_GRANTED) {
-            viewModel.updatePermissionState(true);
-            return;
-        }
+        requestNotificationPermissionWithDelegate();
+    }
+
+    private boolean canUseNotificationWithoutRuntimeRequest() {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU;
+    }
+
+    private boolean hasNotificationPermission() {
+        return ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.POST_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void requestNotificationPermissionWithDelegate() {
         getPermissionDelegate()
                 .setHintTxt("权限示例", "演示页会请求通知权限，方便你参考 BaseUI 的权限代理调用方式。")
                 .requestPermissions(this,
                         new String[]{Manifest.permission.POST_NOTIFICATIONS},
                         REQUEST_NOTIFICATION_PERMISSION,
-                        new com.wifi.lib.baseui.delegate.PermissionDelegate.Callback() {
-                            @Override
-                            public void granted() {
-                                viewModel.updatePermissionState(true);
-                            }
+                        createNotificationPermissionCallback());
+    }
 
-                            @Override
-                            public void denied(List<String> deniedList) {
-                                viewModel.updatePermissionState(false);
-                            }
-                        });
+    @NonNull
+    private PermissionDelegate.Callback createNotificationPermissionCallback() {
+        return new PermissionDelegate.Callback() {
+            @Override
+            public void granted() {
+                viewModel.updatePermissionState(true);
+            }
+
+            @Override
+            public void denied(List<String> deniedList) {
+                viewModel.updatePermissionState(false);
+            }
+        };
     }
 
     private int dp(int value) {

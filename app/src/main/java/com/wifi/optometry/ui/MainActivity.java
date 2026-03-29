@@ -17,23 +17,17 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.core.view.GravityCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.wifi.lib.command.gateway.ProtocolInboundEvent;
 import com.wifi.lib.log.DLog;
 import com.wifi.lib.mvvm.BaseMvvmActivity;
-import com.wifi.optometry.R;
 import com.wifi.optometry.communication.ServerConstance;
 import com.wifi.optometry.communication.TcpServerService;
 import com.wifi.optometry.communication.device.DeviceManager;
 import com.wifi.optometry.databinding.ActivityMainBinding;
 import com.wifi.optometry.domain.model.ConnectedDeviceInfo;
-import com.wifi.optometry.ui.main.DeviceFragment;
-import com.wifi.optometry.ui.main.PatientFragment;
-import com.wifi.optometry.ui.main.ProgramFragment;
-import com.wifi.optometry.ui.main.ReportFragment;
-import com.wifi.optometry.ui.main.SettingsFragment;
 import com.wifi.optometry.ui.main.WorkbenchFragment;
 import com.wifi.optometry.ui.state.ClinicViewModel;
 import com.wifi.optometry.ui.state.DeviceServiceGateway;
@@ -43,6 +37,7 @@ import java.net.NetworkInterface;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Map;
 
 public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicViewModel> implements DeviceServiceGateway {
     private static final int NOTIFICATION_PERMISSION_REQUEST_CODE = 1101;
@@ -55,31 +50,26 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
     private final TcpServerService.OnMessageListener serviceMessageListener = new TcpServerService.OnMessageListener() {
         @Override
         public void onMessageReceived(String clientId, String message) {
-            trace("服务回调收到模块消息，clientId=" + clientId + ", 长度=" + (message == null ? 0 : message.length()));
             appendConsoleAndRefresh("收到 " + clientId + " 的消息: " + message);
         }
 
         @Override
         public void onClientConnected(String clientId) {
-            trace("服务回调模块接入，clientId=" + clientId);
-            appendConsoleAndRefresh("模块已连接: " + clientId);
+            appendConsoleAndRefresh("设备已接入: " + clientId);
         }
 
         @Override
         public void onClientIdentityResolved(String clientId, String macAddress) {
-            trace("服务回调模块身份已解析，clientId=" + clientId + ", mac=" + macAddress);
-            appendConsoleAndRefresh("已识别模块身份: " + macAddress + " [" + clientId + "]");
+            appendConsoleAndRefresh("设备身份已解析: " + macAddress + " [" + clientId + "]");
         }
 
         @Override
         public void onClientDisconnected(String clientId) {
-            trace("服务回调模块断开，clientId=" + clientId);
-            appendConsoleAndRefresh("模块已断开: " + clientId);
+            appendConsoleAndRefresh("设备已断开: " + clientId);
         }
 
         @Override
         public void onError(String error) {
-            trace("服务回调出现错误: " + error);
             appendConsoleAndRefresh("通信错误: " + error);
         }
 
@@ -88,11 +78,20 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
             if (!TextUtils.isEmpty(ipAddress)) {
                 localIpAddress = ipAddress;
             }
-            trace("服务回调监听已启动，地址=" + (TextUtils.isEmpty(ipAddress) ? getLocalIpAddress() : ipAddress)
-                    + ":" + ServerConstance.SERVER_PORT);
             appendConsoleAndRefresh("监听服务运行中，地址: "
                     + (TextUtils.isEmpty(getLocalIpAddress()) ? "未获取" : getLocalIpAddress())
                     + ":" + ServerConstance.SERVER_PORT);
+        }
+
+        @Override
+        public void onProtocolEvent(String clientId, @NonNull ProtocolInboundEvent event) {
+            appendConsoleAndRefresh("协议事件[" + clientId + "] " + event.getPayloadType().name()
+                    + ": " + event.getRawMessage());
+        }
+
+        @Override
+        public void onProtocolError(String clientId, String rawMessage, String errorMessage) {
+            appendConsoleAndRefresh("协议解析失败[" + clientId + "]: " + errorMessage + " | " + rawMessage);
         }
     };
 
@@ -102,7 +101,6 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
             TcpServerService.TcpServerBinder binder = (TcpServerService.TcpServerBinder) service;
             tcpServerService = binder.getService();
             isServiceBound = true;
-            trace("TCP 服务绑定完成，准备同步本地地址和回调");
             if (!TextUtils.isEmpty(localIpAddress)) {
                 tcpServerService.setLocalIpAddress(localIpAddress);
             }
@@ -115,7 +113,6 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
         public void onServiceDisconnected(ComponentName name) {
             isServiceBound = false;
             tcpServerService = null;
-            trace("TCP 服务连接断开，触发界面状态刷新");
             clinicViewModel.refreshDeviceState();
             clinicViewModel.appendDeviceConsole("WiFi 通信服务已断开");
         }
@@ -125,46 +122,35 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
     protected void initWidgets(@Nullable Bundle savedInstanceState) {
         getStatusBarUI().setLightMode();
         applyWindowInsets();
-        setSupportActionBar(binding.topAppBar);
-        binding.topAppBar.setNavigationOnClickListener(v -> binding.drawerLayout.openDrawer(GravityCompat.START));
-        binding.navigationView.setNavigationItemSelectedListener(item -> {
-            binding.drawerLayout.closeDrawer(GravityCompat.START);
-            return openDestination(item.getItemId());
-        });
         checkNotificationPermission();
         requestBatteryOptimizationWhitelist();
         localIpAddress = resolveLocalIpAddress();
-        trace("主界面初始化，本机 IP=" + (TextUtils.isEmpty(localIpAddress) ? "未获取" : localIpAddress));
 
         clinicViewModel.setDeviceServiceGateway(this);
         if (savedInstanceState == null) {
-            openDestination(R.id.menu_workbench);
-            binding.navigationView.setCheckedItem(R.id.menu_workbench);
+            getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(binding.fragmentContainer.getId(), new WorkbenchFragment())
+                    .commit();
         }
-
         startAndBindService();
     }
 
     private void applyWindowInsets() {
-        final int topAppBarPaddingTop = binding.topAppBar.getPaddingTop();
-        final int navigationViewPaddingTop = binding.navigationView.getPaddingTop();
-        ViewCompat.setOnApplyWindowInsetsListener(binding.drawerLayout, (view, insets) -> {
-            int topInset = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
-            binding.topAppBar.setPadding(
-                    binding.topAppBar.getPaddingLeft(),
-                    topAppBarPaddingTop + topInset,
-                    binding.topAppBar.getPaddingRight(),
-                    binding.topAppBar.getPaddingBottom()
-            );
-            binding.navigationView.setPadding(
-                    binding.navigationView.getPaddingLeft(),
-                    navigationViewPaddingTop + topInset,
-                    binding.navigationView.getPaddingRight(),
-                    binding.navigationView.getPaddingBottom()
+        final int paddingLeft = binding.getRoot().getPaddingLeft();
+        final int paddingTop = binding.getRoot().getPaddingTop();
+        final int paddingRight = binding.getRoot().getPaddingRight();
+        final int paddingBottom = binding.getRoot().getPaddingBottom();
+        ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (view, insets) -> {
+            binding.getRoot().setPadding(
+                    paddingLeft,
+                    paddingTop + insets.getInsets(WindowInsetsCompat.Type.statusBars()).top,
+                    paddingRight,
+                    paddingBottom + insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
             );
             return insets;
         });
-        ViewCompat.requestApplyInsets(binding.drawerLayout);
+        ViewCompat.requestApplyInsets(binding.getRoot());
     }
 
     @NonNull
@@ -199,43 +185,6 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
         }
     }
 
-    public void openDeviceHistory(String deviceId) {
-        Intent intent = new Intent(this, com.wifi.optometry.ui.device.DeviceHistoryActivity.class);
-        intent.putExtra(com.wifi.optometry.ui.device.DeviceHistoryActivity.EXTRA_DEVICE_ID, deviceId);
-        startActivity(intent);
-    }
-
-    private boolean openDestination(int itemId) {
-        androidx.fragment.app.Fragment fragment;
-        int titleResId;
-        if (itemId == R.id.menu_patient) {
-            fragment = new PatientFragment();
-            titleResId = R.string.nav_patient;
-        } else if (itemId == R.id.menu_program) {
-            fragment = new ProgramFragment();
-            titleResId = R.string.nav_program;
-        } else if (itemId == R.id.menu_report) {
-            fragment = new ReportFragment();
-            titleResId = R.string.nav_report;
-        } else if (itemId == R.id.menu_device) {
-            fragment = new DeviceFragment();
-            titleResId = R.string.nav_device;
-        } else if (itemId == R.id.menu_settings) {
-            fragment = new SettingsFragment();
-            titleResId = R.string.nav_settings;
-        } else {
-            fragment = new WorkbenchFragment();
-            titleResId = R.string.nav_workbench;
-        }
-
-        binding.topAppBar.setTitle(titleResId);
-        getSupportFragmentManager()
-                .beginTransaction()
-                .replace(binding.fragmentContainer.getId(), fragment)
-                .commit();
-        return true;
-    }
-
     private void startAndBindService() {
         trace("请求启动并绑定 TCP 前台服务");
         Intent serviceIntent = new Intent(this, TcpServerService.class);
@@ -247,6 +196,7 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
         if (tcpServerService == null) {
             return;
         }
+        tcpServerService.unregisterOnMessageListener(serviceMessageListener);
         tcpServerService.registerOnMessageListener(serviceMessageListener);
     }
 
@@ -271,7 +221,6 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
             return;
         }
-
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         String packageName = getPackageName();
         if (powerManager == null || powerManager.isIgnoringBatteryOptimizations(packageName)) {
@@ -328,7 +277,6 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
     public List<ConnectedDeviceInfo> getConnectedDevices() {
         List<ConnectedDeviceInfo> result = new ArrayList<>();
         if (tcpServerService == null) {
-            trace("查询在线模块时服务尚未就绪");
             return result;
         }
         DeviceManager.DeviceConnection[] connections = tcpServerService.getConnectedDevices();
@@ -342,7 +290,6 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
                     connection.getConnectedAt()
             ));
         }
-        trace("聚合在线模块列表完成，数量=" + result.size());
         return result;
     }
 
@@ -380,8 +327,15 @@ public class MainActivity extends BaseMvvmActivity<ActivityMainBinding, ClinicVi
         }
     }
 
+    @Override
+    public void sendCommandToClient(String clientId, String commandCode, Map<String, String> arguments) {
+        if (tcpServerService != null && !TextUtils.isEmpty(clientId) && !TextUtils.isEmpty(commandCode)) {
+            trace("界面层按编码发送命令，clientId=" + clientId + ", code=" + commandCode);
+            tcpServerService.sendCommandByCodeToClient(clientId, commandCode, arguments);
+        }
+    }
+
     private void trace(String message) {
         DLog.i(TAG, message);
     }
 }
-

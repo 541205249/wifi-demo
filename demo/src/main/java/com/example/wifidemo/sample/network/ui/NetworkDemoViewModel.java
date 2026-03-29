@@ -53,18 +53,7 @@ public class NetworkDemoViewModel extends BaseViewModel {
             @NonNull String scenarioName,
             @NonNull RepositoryAction action
     ) {
-        NetworkDemoUiState currentState = uiStateLiveData.getValue();
-        if (currentState == null) {
-            currentState = NetworkDemoUiState.idle(repository.getBaseUrl());
-        }
-        uiStateLiveData.setValue(new NetworkDemoUiState(
-                repository.getBaseUrl(),
-                "正在执行 " + scenarioName + " ...",
-                currentState.getScenarioTitle(),
-                currentState.getRequestPreview(),
-                currentState.getResponsePreview(),
-                currentState.isLastSuccess()
-        ));
+        renderRunningScenario(scenarioName);
         showLoading();
         DLog.i(TAG, "开始执行网络场景：" + scenarioName);
         action.run(result -> handleResult(scenarioName, result));
@@ -75,6 +64,29 @@ public class NetworkDemoViewModel extends BaseViewModel {
             @NonNull NetworkDemoResult result
     ) {
         hideLoading();
+        publishResultState(result);
+        if (result.isSuccess()) {
+            dispatchMessage(scenarioName + " 已完成");
+            DLog.i(TAG, "网络场景执行成功：" + scenarioName);
+            return;
+        }
+        dispatchMessage(result.getStatusText());
+        DLog.w(TAG, "网络场景执行失败：" + scenarioName);
+    }
+
+    private void renderRunningScenario(@NonNull String scenarioName) {
+        NetworkDemoUiState currentState = resolveCurrentState();
+        uiStateLiveData.setValue(new NetworkDemoUiState(
+                repository.getBaseUrl(),
+                "正在执行 " + scenarioName + " ...",
+                currentState.getScenarioTitle(),
+                currentState.getRequestPreview(),
+                currentState.getResponsePreview(),
+                currentState.isLastSuccess()
+        ));
+    }
+
+    private void publishResultState(@NonNull NetworkDemoResult result) {
         uiStateLiveData.setValue(new NetworkDemoUiState(
                 repository.getBaseUrl(),
                 result.getStatusText(),
@@ -83,12 +95,14 @@ public class NetworkDemoViewModel extends BaseViewModel {
                 result.getResponsePreview(),
                 result.isSuccess()
         ));
-        if (result.isSuccess()) {
-            dispatchMessage(scenarioName + " 已完成");
-            DLog.i(TAG, "网络场景执行成功：" + scenarioName);
-            return;
+    }
+
+    @NonNull
+    private NetworkDemoUiState resolveCurrentState() {
+        NetworkDemoUiState currentState = uiStateLiveData.getValue();
+        if (currentState != null) {
+            return currentState;
         }
-        dispatchMessage(result.getStatusText());
-        DLog.w(TAG, "网络场景执行失败：" + scenarioName);
+        return NetworkDemoUiState.idle(repository.getBaseUrl());
     }
 }

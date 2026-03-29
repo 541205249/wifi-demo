@@ -22,6 +22,7 @@ import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -40,6 +41,7 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
     private static final int NOTIFICATION_PERMISSION_REQUEST_CODE = 1001;
     private static final String TAG = "DemoMainActivity";
+    private static final String EMPTY_CLIENT_COUNT_TEXT = "已连接客户端：0 个";
 
     private TextView tvServerInfo;
     private TextView tvIP;
@@ -65,6 +67,47 @@ public class MainActivity extends AppCompatActivity {
     private ArrayAdapter<String> historyDeviceAdapter;
     private final List<String> connectedDeviceIds = new ArrayList<>();
     private final List<String> knownDeviceIds = new ArrayList<>();
+    private final TcpServerService.OnMessageListener serviceMessageListener = new TcpServerService.OnMessageListener() {
+        @Override
+        public void onMessageReceived(String clientId, String message) {
+            mainHandler.post(() -> handleServiceMessageReceived(clientId, message));
+        }
+
+        @Override
+        public void onClientConnected(String clientId) {
+            mainHandler.post(() -> handleServiceClientEvent(
+                    "模块接入，clientId=" + clientId + ", label=" + formatDeviceLabel(clientId),
+                    "客户端已连接：" + formatDeviceLabel(clientId),
+                    "WiFi 模块已连接：" + formatDeviceLabel(clientId),
+                    true
+            ));
+        }
+
+        @Override
+        public void onClientIdentityResolved(String clientId, String macAddress) {
+            mainHandler.post(() -> handleServiceIdentityResolved(clientId, macAddress));
+        }
+
+        @Override
+        public void onClientDisconnected(String clientId) {
+            mainHandler.post(() -> handleServiceClientEvent(
+                    "模块断开，clientId=" + clientId + ", label=" + formatDeviceLabel(clientId),
+                    "客户端已断开：" + formatDeviceLabel(clientId),
+                    "WiFi 模块已断开：" + formatDeviceLabel(clientId),
+                    true
+            ));
+        }
+
+        @Override
+        public void onError(String error) {
+            mainHandler.post(() -> handleServiceError(error));
+        }
+
+        @Override
+        public void onServerStarted(String ipAddress) {
+            mainHandler.post(() -> handleServerStarted(ipAddress));
+        }
+    };
 
     private final ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -86,6 +129,9 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
+            if (tcpServerService != null) {
+                tcpServerService.setOnMessageListener(null);
+            }
             isBound = false;
             appendLog("服务已断开");
             trace("Demo 服务连接断开");
@@ -147,6 +193,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (tcpServerService != null) {
+            tcpServerService.setOnMessageListener(null);
+        }
         if (isBound) {
             unbindService(serviceConnection);
             isBound = false;
@@ -210,76 +259,58 @@ public class MainActivity extends AppCompatActivity {
         if (tcpServerService == null) {
             return;
         }
+        tcpServerService.setOnMessageListener(serviceMessageListener);
+    }
 
-        tcpServerService.setOnMessageListener(new TcpServerService.OnMessageListener() {
-            @Override
-            public void onMessageReceived(String clientId, String message) {
-                mainHandler.post(() -> {
-                    trace("Demo 收到模块消息，clientId=" + clientId + ", length=" + (message == null ? 0 : message.length()));
-                    appendLog("收到模块 [" + formatDeviceLabel(clientId) + "] 消息：" + message);
-                    updateHistoryDeviceList();
-                });
-            }
+    private void handleServiceMessageReceived(@NonNull String clientId, @Nullable String message) {
+        trace("Demo 收到模块消息，clientId=" + clientId + ", length=" + (message == null ? 0 : message.length()));
+        appendLog("收到模块 [" + formatDeviceLabel(clientId) + "] 消息：" + message);
+        updateHistoryDeviceList();
+    }
 
-            @Override
-            public void onClientConnected(String clientId) {
-                mainHandler.post(() -> {
-                    String label = formatDeviceLabel(clientId);
-                    trace("Demo 模块接入，clientId=" + clientId + ", label=" + label);
-                    appendLog("客户端已连接：" + label);
-                    Toasty.showShort("WiFi 模块已连接：" + label);
-                    updateClientList();
-                    updateHistoryDeviceList();
-                });
-            }
+    private void handleServiceClientEvent(
+            @NonNull String traceMessage,
+            @NonNull String logMessage,
+            @Nullable String toastMessage,
+            boolean refreshServiceState
+    ) {
+        trace(traceMessage);
+        appendLog(logMessage);
+        if (!TextUtils.isEmpty(toastMessage)) {
+            Toasty.showShort(toastMessage);
+        }
+        if (refreshServiceState) {
+            updateUIFromService();
+        } else {
+            updateClientList();
+        }
+        updateHistoryDeviceList();
+    }
 
-            @Override
-            public void onClientIdentityResolved(String clientId, String macAddress) {
-                mainHandler.post(() -> {
-                    trace("Demo 模块身份已解析，clientId=" + clientId + ", mac=" + macAddress);
-                    appendLog("模块身份已识别：" + macAddress + " [" + clientId + "]");
-                    updateClientList();
-                    updateHistoryDeviceList();
-                });
-            }
+    private void handleServiceIdentityResolved(@NonNull String clientId, @NonNull String macAddress) {
+        trace("Demo 模块身份已解析，clientId=" + clientId + ", mac=" + macAddress);
+        appendLog("模块身份已识别：" + macAddress + " [" + clientId + "]");
+        updateClientList();
+        updateHistoryDeviceList();
+    }
 
-            @Override
-            public void onClientDisconnected(String clientId) {
-                mainHandler.post(() -> {
-                    String label = formatDeviceLabel(clientId);
-                    trace("Demo 模块断开，clientId=" + clientId + ", label=" + label);
-                    appendLog("客户端已断开：" + label);
-                    Toasty.showShort("WiFi 模块已断开：" + label);
-                    updateClientList();
-                    updateHistoryDeviceList();
-                });
-            }
+    private void handleServiceError(@NonNull String error) {
+        trace("Demo 通信错误：" + error);
+        appendLog("错误：" + error);
+        Toasty.showShort(error);
+    }
 
-            @Override
-            public void onError(String error) {
-                mainHandler.post(() -> {
-                    trace("Demo 通信错误：" + error);
-                    appendLog("错误：" + error);
-                    Toasty.showShort(error);
-                });
-            }
-
-            @Override
-            public void onServerStarted(String ipAddress) {
-                mainHandler.post(() -> {
-                    if (ipAddress != null) {
-                        tvIP.setText("IP 地址：" + ipAddress);
-                        appendLog("服务器已启动，IP: " + ipAddress);
-                        trace("Demo 监听已启动，ip=" + ipAddress);
-                    } else {
-                        tvIP.setText("IP 地址：" + (localIpAddress != null ? localIpAddress : "未获取到"));
-                        appendLog("服务器已启动");
-                        trace("Demo 监听已启动，但服务未返回 IP");
-                    }
-                    updateUIFromService();
-                });
-            }
-        });
+    private void handleServerStarted(@Nullable String ipAddress) {
+        if (ipAddress != null) {
+            tvIP.setText("IP 地址：" + ipAddress);
+            appendLog("服务器已启动，IP: " + ipAddress);
+            trace("Demo 监听已启动，ip=" + ipAddress);
+        } else {
+            tvIP.setText("IP 地址：" + (localIpAddress != null ? localIpAddress : "未获取到"));
+            appendLog("服务器已启动");
+            trace("Demo 监听已启动，但服务未返回 IP");
+        }
+        updateUIFromService();
     }
 
     private void toggleServer() {
@@ -354,7 +385,7 @@ public class MainActivity extends AppCompatActivity {
             connectedDeviceIds.clear();
             clientAdapter.clear();
             clientAdapter.notifyDataSetChanged();
-            tvClientCount.setText("已连接客户端：0 个");
+            tvClientCount.setText(EMPTY_CLIENT_COUNT_TEXT);
             btnSendToClient.setEnabled(false);
             return;
         }
@@ -415,8 +446,8 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        int selectedPosition = spinnerClients.getSelectedItemPosition();
-        if (selectedPosition < 0 || selectedPosition >= connectedDeviceIds.size()) {
+        String clientId = resolveSelectedClientId();
+        if (clientId == null) {
             Toasty.showShort("请选择要发送的模块");
             return;
         }
@@ -427,7 +458,6 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        String clientId = connectedDeviceIds.get(selectedPosition);
         trace("Demo 定向发送消息，clientId=" + clientId + ", length=" + message.length());
         tcpServerService.sendMessageToClient(clientId, message);
         appendLog("发送到模块 [" + formatDeviceLabel(clientId) + "]：" + message);
@@ -435,16 +465,34 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void openSelectedDeviceHistory() {
-        int selectedPosition = spinnerHistoryDevices.getSelectedItemPosition();
-        if (selectedPosition < 0 || selectedPosition >= knownDeviceIds.size()) {
+        String deviceId = resolveSelectedHistoryDeviceId();
+        if (deviceId == null) {
             Toasty.showShort("请选择要查看记录的设备");
             return;
         }
 
         Intent intent = new Intent(this, DeviceHistoryActivity.class);
-        intent.putExtra(DeviceHistoryActivity.EXTRA_DEVICE_ID, knownDeviceIds.get(selectedPosition));
-        trace("Demo 打开模块历史页，deviceId=" + knownDeviceIds.get(selectedPosition));
+        intent.putExtra(DeviceHistoryActivity.EXTRA_DEVICE_ID, deviceId);
+        trace("Demo 打开模块历史页，deviceId=" + deviceId);
         startActivity(intent);
+    }
+
+    @Nullable
+    private String resolveSelectedClientId() {
+        int selectedPosition = spinnerClients.getSelectedItemPosition();
+        if (selectedPosition < 0 || selectedPosition >= connectedDeviceIds.size()) {
+            return null;
+        }
+        return connectedDeviceIds.get(selectedPosition);
+    }
+
+    @Nullable
+    private String resolveSelectedHistoryDeviceId() {
+        int selectedPosition = spinnerHistoryDevices.getSelectedItemPosition();
+        if (selectedPosition < 0 || selectedPosition >= knownDeviceIds.size()) {
+            return null;
+        }
+        return knownDeviceIds.get(selectedPosition);
     }
 
     private void appendLog(String message) {

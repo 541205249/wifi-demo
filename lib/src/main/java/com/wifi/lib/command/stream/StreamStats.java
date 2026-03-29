@@ -1,6 +1,7 @@
 package com.wifi.lib.command.stream;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 public final class StreamStats {
     @NonNull
@@ -22,13 +23,13 @@ public final class StreamStats {
             long lastTimestampMs,
             @NonNull StreamSessionState state
     ) {
-        this.sessionId = sessionId == null ? "" : sessionId.trim();
+        this.sessionId = normalizeSessionId(sessionId);
         this.totalFrames = Math.max(0, totalFrames);
         this.totalBytes = Math.max(0L, totalBytes);
         this.lastSequence = Math.max(0, lastSequence);
         this.droppedFrames = Math.max(0, droppedFrames);
         this.lastTimestampMs = Math.max(0L, lastTimestampMs);
-        this.state = state == null ? StreamSessionState.IDLE : state;
+        this.state = resolveState(state);
     }
 
     @NonNull
@@ -59,5 +60,15 @@ public final class StreamStats {
     @NonNull
     public StreamSessionState getState() {
         return state;
+    }
+
+    @NonNull
+    private static String normalizeSessionId(@Nullable String sessionId) {
+        return sessionId == null ? "" : sessionId.trim();
+    }
+
+    @NonNull
+    private static StreamSessionState resolveState(@Nullable StreamSessionState state) {
+        return state == null ? StreamSessionState.IDLE : state;
     }
 }

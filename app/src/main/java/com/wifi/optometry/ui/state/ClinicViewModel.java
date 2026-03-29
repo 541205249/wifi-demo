@@ -6,6 +6,7 @@ import android.text.TextUtils;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 
+import com.wifi.lib.command.profile.OptometryCommandCodes;
 import com.wifi.lib.log.DLog;
 import com.wifi.lib.mvvm.BaseViewModel;
 import com.wifi.optometry.communication.device.DeviceHistoryStore;
@@ -178,6 +179,11 @@ public class ClinicViewModel extends BaseViewModel {
         repository.moveToPreviousStep();
     }
 
+    public void skipCurrentStep() {
+        trace("请求跳过当前流程步骤");
+        repository.skipCurrentStep();
+    }
+
     public void updateCurrentStepNote(String note) {
         repository.updateCurrentStepNote(note);
     }
@@ -194,12 +200,20 @@ public class ClinicViewModel extends BaseViewModel {
         repository.selectField(field);
     }
 
+    public void setLensDataSource(ExamSession.LensDataSource dataSource) {
+        repository.setLensDataSource(dataSource);
+    }
+
     public void setActiveEye(ExamSession.EyeSelection selection) {
         repository.setActiveEye(selection);
     }
 
     public void setLensVisibility(ExamSession.EyeSelection selection) {
         repository.setLensVisibility(selection);
+    }
+
+    public void selectActiveTool(ExamSession.ToolType toolType) {
+        repository.setActiveTool(toolType);
     }
 
     public void toggleDistanceMode() {
@@ -235,6 +249,11 @@ public class ClinicViewModel extends BaseViewModel {
         repository.adjustSelectedMeasurement(increase, useShiftStep);
     }
 
+    public void clearSelectedMeasurement() {
+        trace("清空当前验光字段");
+        repository.clearSelectedMeasurement();
+    }
+
     public void adjustFunctionalValue(String key, boolean increase) {
         trace("调整视功能数值，key=" + key + ", increase=" + increase);
         repository.adjustFunctionalValue(key, increase);
@@ -259,6 +278,11 @@ public class ClinicViewModel extends BaseViewModel {
         repository.importLatestReport();
     }
 
+    public void createProgram(String title, String summary, String description, boolean copyCurrentProgram) {
+        trace("请求创建新程序，title=" + title + ", copyCurrent=" + copyCurrentProgram);
+        repository.createProgram(title, summary, description, copyCurrentProgram);
+    }
+
     public void updatePendingMessage(String message) {
         trace("更新待发送消息，长度=" + (message == null ? 0 : message.length()));
         repository.setPendingDeviceMessage(message);
@@ -269,45 +293,52 @@ public class ClinicViewModel extends BaseViewModel {
         repository.selectConnectedDevice(clientId);
     }
 
+    public void bindMainDevice(String clientId) {
+        trace("绑定主设备，clientId=" + clientId);
+        repository.bindMainDevice(clientId);
+        appendDeviceConsole("已绑定当前主设备");
+    }
+
+    public void unbindMainDevice() {
+        trace("解除主设备绑定");
+        repository.unbindMainDevice();
+        appendDeviceConsole("已解除主设备绑定");
+    }
+
     public void startServer() {
-        if (deviceServiceGateway == null) {
-            appendDeviceConsole("服务尚未绑定，暂时无法启动监听");
+        if (!ensureDeviceServiceGateway("服务尚未绑定，暂时无法启动监听")) {
             return;
         }
         trace("请求启动 WiFi 监听服务");
         deviceServiceGateway.startServer();
-        appendDeviceConsole("已请求启动 WiFi 监听服务");
-        refreshDeviceState();
+        appendConsoleAndRefreshDeviceState("已请求启动 WiFi 监听服务");
     }
 
     public void stopServer() {
-        if (deviceServiceGateway == null) {
+        if (!ensureDeviceServiceGateway(null)) {
             return;
         }
         trace("请求停止 WiFi 监听服务");
         deviceServiceGateway.stopServer();
-        appendDeviceConsole("已请求停止 WiFi 监听服务");
-        refreshDeviceState();
+        appendConsoleAndRefreshDeviceState("已请求停止 WiFi 监听服务");
     }
 
     public void broadcastMessage(String message) {
-        if (deviceServiceGateway == null || TextUtils.isEmpty(message)) {
+        if (!ensureDeviceServiceGateway(null) || TextUtils.isEmpty(message)) {
             return;
         }
         trace("请求广播指令，长度=" + message.length());
         deviceServiceGateway.broadcastMessage(message);
-        appendDeviceConsole("广播指令: " + message);
-        refreshDeviceState();
+        appendConsoleAndRefreshDeviceState("广播指令: " + message);
     }
 
     public void sendMessageToClient(String clientId, String message) {
-        if (deviceServiceGateway == null || TextUtils.isEmpty(clientId) || TextUtils.isEmpty(message)) {
+        if (!ensureDeviceServiceGateway(null) || TextUtils.isEmpty(clientId) || TextUtils.isEmpty(message)) {
             return;
         }
         trace("请求定向发送，clientId=" + clientId + ", 长度=" + message.length());
         deviceServiceGateway.sendMessageToClient(clientId, message);
-        appendDeviceConsole("发送到 " + clientId + ": " + message);
-        refreshDeviceState();
+        appendConsoleAndRefreshDeviceState("发送到 " + clientId + ": " + message);
     }
 
     public void sendMessageToSelectedClient(String message) {
@@ -318,8 +349,41 @@ public class ClinicViewModel extends BaseViewModel {
         sendMessageToClient(state.getSelectedClientId(), message);
     }
 
+    public void queryBoundMainDeviceInfo() {
+        DeviceUiState state = repository.getDeviceUiStateLiveData().getValue();
+        if (state == null || TextUtils.isEmpty(state.getBoundCommandClientId())) {
+            appendDeviceConsole("当前没有可查询的在线主设备");
+            return;
+        }
+        if (!ensureDeviceServiceGateway("服务尚未绑定，暂时无法查询模块信息")) {
+            return;
+        }
+        trace("向主设备发送模块信息查询，clientId=" + state.getBoundCommandClientId());
+        deviceServiceGateway.sendCommandToClient(
+                state.getBoundCommandClientId(),
+                OptometryCommandCodes.CODE_QUERY_MODULE_INFO,
+                null
+        );
+        appendDeviceConsole("已向主设备发送模块信息查询");
+    }
+
     public void appendDeviceConsole(String line) {
         repository.appendDeviceLog("[" + DeviceHistoryStore.formatTimestamp(System.currentTimeMillis()) + "] " + line);
+    }
+
+    private void appendConsoleAndRefreshDeviceState(String line) {
+        appendDeviceConsole(line);
+        refreshDeviceState();
+    }
+
+    private boolean ensureDeviceServiceGateway(String unavailableMessage) {
+        if (deviceServiceGateway != null) {
+            return true;
+        }
+        if (!TextUtils.isEmpty(unavailableMessage)) {
+            appendDeviceConsole(unavailableMessage);
+        }
+        return false;
     }
 
     private List<KnownDeviceSummary> loadKnownDevices() {

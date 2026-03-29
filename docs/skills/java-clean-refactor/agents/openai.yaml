@@ -1,7 +1,7 @@
 interface:
-  display_name: "Java Clean Refactor"
-  short_description: "用整洁代码、重构与边界设计规则改进 Java/Android 代码"
-  default_prompt: "Use $java-clean-refactor to review the current Java or Android code, identify code smells, and apply small safe refactorings."
+  display_name: "Java 小步重构"
+  short_description: "先判断边界和坏味道，再对 Java/Android 代码做小步、低风险重构"
+  default_prompt: "使用 $java-clean-refactor 审查当前 Java 或 Android 代码，先判断是否存在坏味道或受保护边界，再选择最小、低风险的重构动作；如果不该重构，请明确说明原因。"
 
 policy:
   allow_implicit_invocation: true

@@ -17,9 +17,7 @@ public class DemoRepository extends BaseRepository {
     private final SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
 
     private DemoRepository() {
-        records.add(formatRecord("基础库已接入，准备演示 MVVM + Repository。"));
-        records.add(formatRecord("页面可直接复用 BaseVBActivity / BaseVBFragment。"));
-        records.add(formatRecord("Loading、权限、Dialog、BottomSheet 已统一下沉到 lib。"));
+        seedInitialRecords();
         DLog.i(TAG, "演示仓库初始化完成，records=" + records.size());
     }
 
@@ -40,8 +38,9 @@ public class DemoRepository extends BaseRepository {
     }
 
     public synchronized void appendRecord(String message) {
-        records.add(0, formatRecord(message));
-        DLog.i(TAG, "写入演示记录，message=" + message);
+        String normalizedMessage = normalizeMessage(message);
+        records.add(0, formatRecord(normalizedMessage));
+        DLog.i(TAG, "写入演示记录，message=" + normalizedMessage);
     }
 
     public synchronized int size() {
@@ -50,6 +49,20 @@ public class DemoRepository extends BaseRepository {
 
     private String formatRecord(String message) {
         return "[" + timeFormat.format(new Date()) + "] " + message;
+    }
+
+    private void seedInitialRecords() {
+        addSeedRecord("基础库已接入，准备演示 MVVM + Repository。");
+        addSeedRecord("页面可直接复用 BaseVBActivity / BaseVBFragment。");
+        addSeedRecord("Loading、权限、Dialog、BottomSheet 已统一下沉到 lib。");
+    }
+
+    private void addSeedRecord(String message) {
+        records.add(formatRecord(message));
+    }
+
+    private String normalizeMessage(String message) {
+        return message == null ? "" : message.trim();
     }
 }
 

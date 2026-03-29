@@ -7,6 +7,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.wifi.lib.R;
 
@@ -22,14 +23,11 @@ public class PageLoadingUIDelegate {
     }
 
     public void show() {
-        ensureView();
-        progressLayout.setVisibility(View.VISIBLE);
+        showInternal(null);
     }
 
-    public void show(@NonNull CharSequence message) {
-        ensureView();
-        tvLoading.setText(message);
-        progressLayout.setVisibility(View.VISIBLE);
+    public void show(@Nullable CharSequence message) {
+        showInternal(message);
     }
 
     public void hide() {
@@ -38,9 +36,9 @@ public class PageLoadingUIDelegate {
         }
     }
 
-    public void setMessage(@NonNull CharSequence message) {
+    public void setMessage(@Nullable CharSequence message) {
         ensureView();
-        tvLoading.setText(message);
+        tvLoading.setText(message == null ? "" : message);
     }
 
     public TextView getTvLoading() {
@@ -57,14 +55,32 @@ public class PageLoadingUIDelegate {
         if (progressLayout != null) {
             return;
         }
-        if (!(viewRoot instanceof ViewGroup)) {
-            throw new IllegalStateException("PageLoadingUIDelegate requires a ViewGroup root");
-        }
-        ViewGroup parent = (ViewGroup) viewRoot;
-        progressLayout = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.page_loading_view, parent, false);
+        ViewGroup parent = requireViewGroupRoot();
+        progressLayout = inflateProgressLayout(parent);
         progressBar = progressLayout.findViewById(R.id.pb);
         tvLoading = progressLayout.findViewById(R.id.tv);
         parent.addView(progressLayout);
+    }
+
+    private void showInternal(@Nullable CharSequence message) {
+        ensureView();
+        if (message != null) {
+            tvLoading.setText(message);
+        }
+        progressLayout.setVisibility(View.VISIBLE);
+    }
+
+    @NonNull
+    private ViewGroup requireViewGroupRoot() {
+        if (!(viewRoot instanceof ViewGroup)) {
+            throw new IllegalStateException("PageLoadingUIDelegate requires a ViewGroup root");
+        }
+        return (ViewGroup) viewRoot;
+    }
+
+    @NonNull
+    private View inflateProgressLayout(@NonNull ViewGroup parent) {
+        return LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.page_loading_view, parent, false);
     }
 }

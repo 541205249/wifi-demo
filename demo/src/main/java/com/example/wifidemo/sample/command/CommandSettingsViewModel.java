@@ -173,37 +173,18 @@ public class CommandSettingsViewModel extends BaseViewModel {
     }
 
     private void registerProtocolUseCases() {
-        protocolDispatcher.registerCommandUseCase(OptometryCommandCodes.CODE_REPORT_MODULE_INFO,
-                context -> appendConsole("已按编码 " + context.getCode() + " 处理模块信息上报: " + context.getRawMessage()));
-        protocolDispatcher.registerCommandUseCase(OptometryCommandCodes.CODE_CONFIRM_AUTO_MODE,
-                context -> appendConsole("已按编码 " + context.getCode() + " 处理自动模式切换确认: " + context.getRawMessage()));
-        protocolDispatcher.registerCommandUseCase(OptometryCommandCodes.CODE_CONFIRM_MANUAL_MODE,
-                context -> appendConsole("已按编码 " + context.getCode() + " 处理手动模式切换确认: " + context.getRawMessage()));
-        protocolDispatcher.registerCommandUseCase(OptometryCommandCodes.CODE_CONFIRM_START_OPTOMETRY,
-                context -> appendConsole("已按编码 " + context.getCode() + " 处理开始验光确认: " + context.getRawMessage()));
-        protocolDispatcher.registerCommandUseCase(OptometryCommandCodes.CODE_CONFIRM_STOP_OPTOMETRY,
-                context -> appendConsole("已按编码 " + context.getCode() + " 处理停止验光确认: " + context.getRawMessage()));
-        protocolDispatcher.registerCommandUseCase(OptometryCommandCodes.CODE_REPORT_DEVICE_STATUS,
-                context -> appendConsole("已按编码 " + context.getCode() + " 处理设备状态上报: " + context.getRawMessage()));
-        protocolDispatcher.registerCommandUseCase(OptometryCommandCodes.CODE_REPORT_OPTOMETRY_RESULT,
-                context -> appendConsole("已按编码 " + context.getCode() + " 处理验光结果上报: " + context.getRawMessage()));
+        registerCommandConsoleUseCase(OptometryCommandCodes.CODE_REPORT_MODULE_INFO, "模块信息上报");
+        registerCommandConsoleUseCase(OptometryCommandCodes.CODE_CONFIRM_AUTO_MODE, "自动模式切换确认");
+        registerCommandConsoleUseCase(OptometryCommandCodes.CODE_CONFIRM_MANUAL_MODE, "手动模式切换确认");
+        registerCommandConsoleUseCase(OptometryCommandCodes.CODE_CONFIRM_START_OPTOMETRY, "开始验光确认");
+        registerCommandConsoleUseCase(OptometryCommandCodes.CODE_CONFIRM_STOP_OPTOMETRY, "停止验光确认");
+        registerCommandConsoleUseCase(OptometryCommandCodes.CODE_REPORT_DEVICE_STATUS, "设备状态上报");
+        registerCommandConsoleUseCase(OptometryCommandCodes.CODE_REPORT_OPTOMETRY_RESULT, "验光结果上报");
 
-        protocolDispatcher.registerAckUseCase(AckChannel.COMMAND, OptometryCommandCodes.CODE_START_OPTOMETRY,
-                context -> appendConsole("已按 ACK 处理开始验光回执: status="
-                        + context.getAckMessage().getStatus()
-                        + ", message=" + context.getAckMessage().getMessage()));
-        protocolDispatcher.registerAckUseCase(AckChannel.COMMAND, OptometryCommandCodes.CODE_STOP_OPTOMETRY,
-                context -> appendConsole("已按 ACK 处理停止验光回执: status="
-                        + context.getAckMessage().getStatus()
-                        + ", message=" + context.getAckMessage().getMessage()));
-        protocolDispatcher.registerAckUseCase(AckChannel.COMMAND, OptometryCommandCodes.CODE_SWITCH_AUTO_MODE,
-                context -> appendConsole("已按 ACK 处理自动模式切换回执: status="
-                        + context.getAckMessage().getStatus()
-                        + ", message=" + context.getAckMessage().getMessage()));
-        protocolDispatcher.registerAckUseCase(AckChannel.COMMAND, OptometryCommandCodes.CODE_SWITCH_MANUAL_MODE,
-                context -> appendConsole("已按 ACK 处理手动模式切换回执: status="
-                        + context.getAckMessage().getStatus()
-                        + ", message=" + context.getAckMessage().getMessage()));
+        registerCommandAckConsoleUseCase(OptometryCommandCodes.CODE_START_OPTOMETRY, "开始验光回执");
+        registerCommandAckConsoleUseCase(OptometryCommandCodes.CODE_STOP_OPTOMETRY, "停止验光回执");
+        registerCommandAckConsoleUseCase(OptometryCommandCodes.CODE_SWITCH_AUTO_MODE, "自动模式切换回执");
+        registerCommandAckConsoleUseCase(OptometryCommandCodes.CODE_SWITCH_MANUAL_MODE, "手动模式切换回执");
 
         protocolDispatcher.setCommandFallbackUseCase(
                 context -> appendConsole("收到已识别编码 " + context.getCode() + "，但当前页面未定义处理逻辑"));
@@ -229,6 +210,19 @@ public class CommandSettingsViewModel extends BaseViewModel {
                         + context.getEvent().getErrorMessage()));
     }
 
+    private void registerCommandConsoleUseCase(@NonNull String code, @NonNull String actionLabel) {
+        protocolDispatcher.registerCommandUseCase(code,
+                context -> appendConsole("已按编码 " + context.getCode() + " 处理" + actionLabel + ": "
+                        + context.getRawMessage()));
+    }
+
+    private void registerCommandAckConsoleUseCase(@NonNull String code, @NonNull String actionLabel) {
+        protocolDispatcher.registerAckUseCase(AckChannel.COMMAND, code,
+                context -> appendConsole("已按 ACK 处理" + actionLabel + ": status="
+                        + context.getAckMessage().getStatus()
+                        + ", message=" + context.getAckMessage().getMessage()));
+    }
+
     private void dispatchProtocolEvent(@NonNull String clientId, @NonNull ProtocolInboundEvent event) {
         ProtocolDispatchResult result = protocolDispatcher.dispatch(clientId, event);
         if (result.isFailed()) {
@@ -247,18 +241,32 @@ public class CommandSettingsViewModel extends BaseViewModel {
     }
 
     private void renderLoadResult(@NonNull CommandSettingsRepository.LoadResult loadResult) {
-        loadedFileLiveData.setValue("当前编码表: " + loadResult.getSourceLabel());
-        tableSummaryLiveData.setValue(buildTableSummary(loadResult.getCommandTable()));
-        validationLiveData.setValue(buildValidationSummary(loadResult.getValidationResult()));
+        updateCommandTableState(
+                "当前编码表: " + loadResult.getSourceLabel(),
+                loadResult.getCommandTable(),
+                loadResult.getValidationResult()
+        );
         appendConsole("编码表加载成功，source=" + loadResult.getSourceLabel() + ", count=" + loadResult.getCommandTable().size());
         DLog.i(TAG, "命令编码表加载成功，source=" + loadResult.getSourceLabel());
     }
 
     private void renderSnapshot(@NonNull CommandSettingsRepository.Snapshot snapshot) {
         Uri sourceUri = snapshot.getSourceUri();
-        loadedFileLiveData.setValue(sourceUri == null ? "当前编码表: 未加载" : "当前编码表: " + sourceUri);
-        tableSummaryLiveData.setValue(buildTableSummary(snapshot.getCommandTable()));
-        validationLiveData.setValue(buildValidationSummary(snapshot.getValidationResult()));
+        updateCommandTableState(
+                sourceUri == null ? "当前编码表: 未加载" : "当前编码表: " + sourceUri,
+                snapshot.getCommandTable(),
+                snapshot.getValidationResult()
+        );
+    }
+
+    private void updateCommandTableState(
+            @NonNull String loadedFileText,
+            @NonNull CommandTable commandTable,
+            @Nullable CommandCatalog.ValidationResult validationResult
+    ) {
+        loadedFileLiveData.setValue(loadedFileText);
+        tableSummaryLiveData.setValue(buildTableSummary(commandTable));
+        validationLiveData.setValue(buildValidationSummary(validationResult));
     }
 
     @NonNull

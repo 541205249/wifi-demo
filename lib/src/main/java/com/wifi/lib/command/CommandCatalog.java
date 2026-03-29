@@ -116,7 +116,7 @@ public final class CommandCatalog {
                     moduleName,
                     subModuleName,
                     actionName,
-                    moduleName + "/" + subModuleName + "/" + actionName,
+                    buildDefaultCodeExplanation(moduleName, subModuleName, actionName),
                     ""
             );
         }
@@ -134,9 +134,18 @@ public final class CommandCatalog {
                     moduleName,
                     subModuleName,
                     actionName,
-                    moduleName + "/" + subModuleName + "/" + actionName,
+                    buildDefaultCodeExplanation(moduleName, subModuleName, actionName),
                     description
             );
+        }
+
+        @NonNull
+        private static String buildDefaultCodeExplanation(
+                @NonNull String moduleName,
+                @NonNull String subModuleName,
+                @NonNull String actionName
+        ) {
+            return moduleName + "/" + subModuleName + "/" + actionName;
         }
 
         @NonNull

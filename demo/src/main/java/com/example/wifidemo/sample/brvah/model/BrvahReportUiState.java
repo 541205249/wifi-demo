@@ -26,12 +26,12 @@ public class BrvahReportUiState {
             boolean hasMore,
             String errorMessage
     ) {
-        this.records = new ArrayList<>(records);
-        this.summary = summary;
-        this.footerTip = footerTip;
+        this.records = copyRecords(records);
+        this.summary = normalize(summary);
+        this.footerTip = normalize(footerTip);
         this.status = status;
         this.hasMore = hasMore;
-        this.errorMessage = errorMessage;
+        this.errorMessage = normalize(errorMessage);
     }
 
     public List<ReportRecord> getRecords() {
@@ -56,5 +56,13 @@ public class BrvahReportUiState {
 
     public String getErrorMessage() {
         return errorMessage;
+    }
+
+    private static List<ReportRecord> copyRecords(List<ReportRecord> records) {
+        return records == null ? new ArrayList<>() : new ArrayList<>(records);
+    }
+
+    private static String normalize(String value) {
+        return value == null ? "" : value;
     }
 }

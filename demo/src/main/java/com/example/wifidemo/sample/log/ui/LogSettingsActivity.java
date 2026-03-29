@@ -39,50 +39,14 @@ public class LogSettingsActivity extends BaseMvvmActivity<ActivityLogSettingsBin
 
     private void initExportHooks() {
         ComponentActivity activity = this;
-        DLog.hookToExport(activity, binding.btnExportLocalDLog, new DLog.Callback() {
-            @Override
-            public void onSuccess(@NonNull String message) {
-                viewModel.onExportResult(true, "DLog 本地导出成功：" + message);
-            }
-
-            @Override
-            public void onError(@NonNull String errorMessage) {
-                viewModel.onExportResult(false, "DLog 本地导出失败：" + errorMessage);
-            }
-        });
-        DLog.hookToShare(activity, binding.btnSharePlatformDLog, new DLog.Callback() {
-            @Override
-            public void onSuccess(@NonNull String message) {
-                viewModel.onExportResult(true, "DLog 平台分享已触发：" + message);
-            }
-
-            @Override
-            public void onError(@NonNull String errorMessage) {
-                viewModel.onExportResult(false, "DLog 平台分享失败：" + errorMessage);
-            }
-        });
-        JLogExporter.get().hookToExport(activity, binding.btnExportLocalJLog, new JLogExporter.Callback() {
-            @Override
-            public void onSuccess(@NonNull String message) {
-                viewModel.onExportResult(true, "JLog 全量本地导出成功：" + message);
-            }
-
-            @Override
-            public void onError(@NonNull String errorMessage) {
-                viewModel.onExportResult(false, "JLog 全量本地导出失败：" + errorMessage);
-            }
-        });
-        JLogExporter.get().hookToShare(activity, binding.btnSharePlatformJLog, new JLogExporter.Callback() {
-            @Override
-            public void onSuccess(@NonNull String message) {
-                viewModel.onExportResult(true, "JLog 全量平台分享已触发：" + message);
-            }
-
-            @Override
-            public void onError(@NonNull String errorMessage) {
-                viewModel.onExportResult(false, "JLog 全量平台分享失败：" + errorMessage);
-            }
-        });
+        DLog.hookToExport(activity, binding.btnExportLocalDLog,
+                createExportResultCallback("DLog 本地导出成功：", "DLog 本地导出失败："));
+        DLog.hookToShare(activity, binding.btnSharePlatformDLog,
+                createExportResultCallback("DLog 平台分享已触发：", "DLog 平台分享失败："));
+        JLogExporter.get().hookToExport(activity, binding.btnExportLocalJLog,
+                createExportResultCallback("JLog 全量本地导出成功：", "JLog 全量本地导出失败："));
+        JLogExporter.get().hookToShare(activity, binding.btnSharePlatformJLog,
+                createExportResultCallback("JLog 全量平台分享已触发：", "JLog 全量平台分享失败："));
     }
 
     private void renderForm(@NonNull DLogSettingsForm form) {
@@ -130,5 +94,23 @@ public class LogSettingsActivity extends BaseMvvmActivity<ActivityLogSettingsBin
                 editText.setSelection(editText.getText().length());
             }
         }
+    }
+
+    @NonNull
+    private DLog.Callback createExportResultCallback(
+            @NonNull String successPrefix,
+            @NonNull String failurePrefix
+    ) {
+        return new DLog.Callback() {
+            @Override
+            public void onSuccess(@NonNull String message) {
+                viewModel.onExportResult(true, successPrefix + message);
+            }
+
+            @Override
+            public void onError(@NonNull String errorMessage) {
+                viewModel.onExportResult(false, failurePrefix + errorMessage);
+            }
+        };
     }
 }

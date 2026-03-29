@@ -1,6 +1,7 @@
 package com.example.wifidemo.sample.network.model;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 public class NetworkDemoUiState {
     private final String baseUrl;
@@ -11,18 +12,18 @@ public class NetworkDemoUiState {
     private final boolean lastSuccess;
 
     public NetworkDemoUiState(
-            @NonNull String baseUrl,
-            @NonNull String statusText,
-            @NonNull String scenarioTitle,
-            @NonNull String requestPreview,
-            @NonNull String responsePreview,
+            @Nullable String baseUrl,
+            @Nullable String statusText,
+            @Nullable String scenarioTitle,
+            @Nullable String requestPreview,
+            @Nullable String responsePreview,
             boolean lastSuccess
     ) {
-        this.baseUrl = baseUrl;
-        this.statusText = statusText;
-        this.scenarioTitle = scenarioTitle;
-        this.requestPreview = requestPreview;
-        this.responsePreview = responsePreview;
+        this.baseUrl = normalize(baseUrl);
+        this.statusText = normalize(statusText);
+        this.scenarioTitle = normalize(scenarioTitle);
+        this.requestPreview = normalize(requestPreview);
+        this.responsePreview = normalize(responsePreview);
         this.lastSuccess = lastSuccess;
     }
 
@@ -65,5 +66,10 @@ public class NetworkDemoUiState {
 
     public boolean isLastSuccess() {
         return lastSuccess;
+    }
+
+    @NonNull
+    private static String normalize(@Nullable String value) {
+        return value == null ? "" : value;
     }
 }

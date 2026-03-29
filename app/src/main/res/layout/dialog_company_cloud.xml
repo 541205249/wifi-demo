@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="860dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_workbench_dialog_surface"
+    android:orientation="vertical"
+    android:padding="28dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="公司信息与云端配置"
+        android:textColor="@color/console_text_dark"
+        android:textSize="28sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center"
+        android:text="关闭上传后，云端相关字段会自动置灰。"
+        android:textColor="@color/console_text_soft"
+        android:textSize="16sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="26dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:text="公司名称"
+            android:textColor="@color/console_text_dark"
+            android:textSize="20sp" />
+
+        <EditText
+            android:id="@+id/etCompanyName"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_workbench_surface_panel"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="16dp"
+            android:textColor="@color/console_text_dark"
+            android:textColorHint="@color/console_text_soft"
+            android:textSize="18sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:text="上传云端"
+            android:textColor="@color/console_text_dark"
+            android:textSize="20sp" />
+
+        <Switch
+            android:id="@+id/switchCloudUpload"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:text="云端地址"
+            android:textColor="@color/console_text_dark"
+            android:textSize="20sp" />
+
+        <EditText
+            android:id="@+id/etCloudUrl"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_workbench_surface_panel"
+            android:gravity="center_vertical"
+            android:hint="https://"
+            android:paddingHorizontal="16dp"
+            android:textColor="@color/console_text_dark"
+            android:textColorHint="@color/console_text_soft"
+            android:textSize="18sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:text="云端账号"
+            android:textColor="@color/console_text_dark"
+            android:textSize="20sp" />
+
+        <EditText
+            android:id="@+id/etCloudAccount"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_workbench_surface_panel"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="16dp"
+            android:textColor="@color/console_text_dark"
+            android:textColorHint="@color/console_text_soft"
+            android:textSize="18sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:text="云端密码"
+            android:textColor="@color/console_text_dark"
+            android:textSize="20sp" />
+
+        <EditText
+            android:id="@+id/etCloudPassword"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_workbench_surface_panel"
+            android:gravity="center_vertical"
+            android:inputType="textPassword"
+            android:paddingHorizontal="16dp"
+            android:textColor="@color/console_text_dark"
+            android:textColorHint="@color/console_text_soft"
+            android:textSize="18sp" />
+    </LinearLayout>
+
+    <CheckBox
+        android:id="@+id/cbShowCloudPassword"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="150dp"
+        android:layout_marginTop="8dp"
+        android:text="显示密码"
+        android:textColor="@color/console_text_soft"
+        android:textSize="16sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="28dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCompanyCloudConfirm"
+            android:layout_width="220dp"
+            android:layout_height="54dp"
+            android:background="@drawable/bg_workbench_primary_button"
+            android:backgroundTint="@android:color/transparent"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="确认"
+            android:textColor="@android:color/white"
+            android:textSize="20sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCompanyCloudCancel"
+            android:layout_width="220dp"
+            android:layout_height="54dp"
+            android:layout_marginStart="18dp"
+            android:background="@drawable/bg_workbench_action_button"
+            android:backgroundTint="@android:color/transparent"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="取消"
+            android:textColor="@color/console_text_dark"
+            android:textSize="20sp" />
+    </LinearLayout>
+
+</LinearLayout>

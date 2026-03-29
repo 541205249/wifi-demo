@@ -34,6 +34,10 @@ public class JLogcatCollector {
     private static final int PERSISTENT_SAVE_INTERVAL = 200;
     private static final int SPILL_FLUSH_LINE_LIMIT = 200;
     private static final long SPILL_FLUSH_BYTE_LIMIT = 128 * 1024L;
+    private static final String PATTERN_CRASH_TIMESTAMP = "yyyy-MM-dd_HH-mm-ss";
+    private static final String PATTERN_LOG_LINE_TIMESTAMP = "yyyy-MM-dd HH:mm:ss.SSS";
+    private static final String PATTERN_LOG_DATE = "yyyy-MM-dd";
+    private static final String PATTERN_LOG_TIME = "HH-mm-ss";
 
     private final List<String> logBuffer = new ArrayList<>();
     private final List<String> spilledLogBuffer = new ArrayList<>();
@@ -179,8 +183,7 @@ public class JLogcatCollector {
                 crashDir.mkdirs();
             }
 
-            String timestamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault())
-                    .format(new Date());
+            String timestamp = formatNow(PATTERN_CRASH_TIMESTAMP);
             File crashFile = new File(crashDir, "crash_" + timestamp + ".txt");
             List<String> recentLogs;
             synchronized (bufferLock) {
@@ -386,8 +389,7 @@ public class JLogcatCollector {
             @Nullable String message,
             @Nullable Throwable throwable
     ) {
-        String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.getDefault())
-                .format(new Date());
+        String timestamp = formatNow(PATTERN_LOG_LINE_TIMESTAMP);
         StringBuilder builder = new StringBuilder()
                 .append(timestamp)
                 .append(" ")
@@ -415,6 +417,11 @@ public class JLogcatCollector {
         return (line + "\n").getBytes(StandardCharsets.UTF_8).length;
     }
 
+    @NonNull
+    private static String formatNow(@NonNull String pattern) {
+        return new SimpleDateFormat(pattern, Locale.getDefault()).format(new Date());
+    }
+
     private static long getMemoryLimitBytes(@NonNull JLogConfig config) {
         return Math.max(1L, (long) (config.getMemoryBufferLimit() * 1024 * 1024));
     }
@@ -431,7 +438,7 @@ public class JLogcatCollector {
         long singleFileSizeLimit = Math.max(1L, (long) (config.getSingleFileSizeLimit() * 1024 * 1024));
         int dailyFilesLimit = Math.max(1, config.getDailyFilesLimit());
 
-        String dateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        String dateStr = formatNow(PATTERN_LOG_DATE);
         File dateDir = new File(logDirectory, dateStr);
         if (!dateDir.exists()) {
             //noinspection ResultOfMethodCallIgnored
@@ -442,7 +449,7 @@ public class JLogcatCollector {
         List<File> logFiles = existingFiles != null ? new ArrayList<>(Arrays.asList(existingFiles)) : new ArrayList<>();
         Collections.sort(logFiles, (file1, file2) -> file1.getName().compareTo(file2.getName()));
 
-        String timeStr = new SimpleDateFormat("HH-mm-ss", Locale.getDefault()).format(new Date());
+        String timeStr = formatNow(PATTERN_LOG_TIME);
         String baseFileName = "log_" + timeStr;
         int fileIndex = 0;
         File logFile = createNextLogFile(dateDir, baseFileName, fileIndex, logFiles, dailyFilesLimit);

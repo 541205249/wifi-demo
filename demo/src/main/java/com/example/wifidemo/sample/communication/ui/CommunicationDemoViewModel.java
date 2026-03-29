@@ -254,7 +254,7 @@ public class CommunicationDemoViewModel extends BaseViewModel {
                     + (receiveProgress == null ? 0 : receiveProgress.getTransferredChunks())
                     + "/" + (receiveProgress == null ? metadata.getTotalChunks() : receiveProgress.getTotalChunks())
                     + " 片";
-            uiStateLiveData.setValue(new CommunicationDemoUiState(
+            updateScenarioState(
                     statusText,
                     "文件传输",
                     "意思是这次数据太大，已经不适合塞进一条普通命令，所以先通过命令层做握手，再把真正的大内容拆成很多片逐条发过去。接收端收到后再按顺序组装、校验。",
@@ -262,20 +262,16 @@ public class CommunicationDemoViewModel extends BaseViewModel {
                     flowText + "\n\n实际分片示例：\n" + joinFrames(frames),
                     buildTransferConsole(sendProgress, receiveProgress, rebuiltText),
                     true
-            ));
+            );
         } catch (Exception exception) {
-            appendConsole("文件传输示例失败: " + safeMessage(exception));
-            DLog.e(TAG, "运行文件传输示例失败", exception);
-            uiStateLiveData.setValue(new CommunicationDemoUiState(
+            renderFailureScenario(
                     "文件传输示例失败",
                     "文件传输",
                     "文件传输适合大内容场景，需要命令握手和分片传输配合。",
                     "本次示例执行失败，请检查 transfer 基础层日志。",
-                    safeMessage(exception),
-                    buildConsole(),
-                    false
-            ));
-            dispatchMessage("文件传输示例失败: " + safeMessage(exception));
+                    "文件传输示例",
+                    exception
+            );
         }
     }
 
@@ -345,7 +341,7 @@ public class CommunicationDemoViewModel extends BaseViewModel {
                     + receiveStats.getTotalFrames()
                     + " 帧，累计 " + receiveStats.getTotalBytes()
                     + " 字节，丢帧 " + receiveStats.getDroppedFrames() + " 帧";
-            uiStateLiveData.setValue(new CommunicationDemoUiState(
+            updateScenarioState(
                     statusText,
                     "实时流",
                     "意思是模块不是回一条结果就结束，而是持续不断地一帧一帧往 App 推数据。App 收到后不是攒到最后再处理，而是来一帧处理一帧、刷新一帧。",
@@ -353,20 +349,16 @@ public class CommunicationDemoViewModel extends BaseViewModel {
                     flowText + "\n\n实际流帧示例：\n" + joinRawFrames(rawFrames),
                     buildStreamConsole(sendStats, receiveStats),
                     true
-            ));
+            );
         } catch (Exception exception) {
-            appendConsole("实时流示例失败: " + safeMessage(exception));
-            DLog.e(TAG, "运行实时流示例失败", exception);
-            uiStateLiveData.setValue(new CommunicationDemoUiState(
+            renderFailureScenario(
                     "实时流示例失败",
                     "实时流",
                     "实时流适合高频连续数据，需要把控制命令和实时帧分层。",
                     "本次示例执行失败，请检查 stream 基础层日志。",
-                    safeMessage(exception),
-                    buildConsole(),
-                    false
-            ));
-            dispatchMessage("实时流示例失败: " + safeMessage(exception));
+                    "实时流示例",
+                    exception
+            );
         }
     }
 
@@ -430,7 +422,7 @@ public class CommunicationDemoViewModel extends BaseViewModel {
                     + "开发重点：模块端统一返回 ACK+/ERR+；App 端统一用 AckCodec 解析\n"
                     + "页面上会发生什么：收到任何成功/失败回执，都能先按同一模型拿到 status、type、ref、session、errorCode";
             String statusText = "统一回执示例完成：1 条命令 ACK，1 条传输 ERR，1 条流 ACK";
-            uiStateLiveData.setValue(new CommunicationDemoUiState(
+            updateScenarioState(
                     statusText,
                     "统一 ACK / 错误码",
                     "意思是不管模块回应的是普通命令、文件传输还是实时流，都尽量回成同一种固定结构。这样 App 不需要为三套场景各写一套成功失败解析器。",
@@ -438,20 +430,16 @@ public class CommunicationDemoViewModel extends BaseViewModel {
                     flowText,
                     buildAckConsole(parsedCommandAck, parsedTransferErr, parsedStreamAck),
                     true
-            ));
+            );
         } catch (Exception exception) {
-            appendConsole("统一回执示例失败: " + safeMessage(exception));
-            DLog.e(TAG, "运行统一回执示例失败", exception);
-            uiStateLiveData.setValue(new CommunicationDemoUiState(
+            renderFailureScenario(
                     "统一回执示例失败",
                     "统一 ACK / 错误码",
                     "统一回执适合给 command、transfer、stream 共用。",
                     "本次示例执行失败，请检查 ack 基础层日志。",
-                    safeMessage(exception),
-                    buildConsole(),
-                    false
-            ));
-            dispatchMessage("统一回执示例失败: " + safeMessage(exception));
+                    "统一回执示例",
+                    exception
+            );
         }
     }
 
@@ -565,7 +553,7 @@ public class CommunicationDemoViewModel extends BaseViewModel {
             String statusText = "业务分发示例完成：1 条 command，1 条 ACK，"
                     + transferMetadata.getTotalChunks() + " 片 transfer，"
                     + (buildStreamPayloads().size() + 1) + " 帧 stream";
-            uiStateLiveData.setValue(new CommunicationDemoUiState(
+            updateScenarioState(
                     statusText,
                     "业务分发 / 路由",
                     "意思是协议层已经把消息识别出来了，但业务层还需要知道这条消息到底该交给哪个处理器。dispatcher 的作用就是把这个路由动作从页面里抽走，统一放进 lib。",
@@ -573,20 +561,16 @@ public class CommunicationDemoViewModel extends BaseViewModel {
                     flowText,
                     buildConsole(),
                     true
-            ));
+            );
         } catch (Exception exception) {
-            appendConsole("业务分发示例失败: " + safeMessage(exception));
-            DLog.e(TAG, "运行业务分发示例失败", exception);
-            uiStateLiveData.setValue(new CommunicationDemoUiState(
+            renderFailureScenario(
                     "业务分发示例失败",
                     "业务分发 / 路由",
                     "业务分发示例负责演示消息命中不同处理器的过程。",
                     "本次示例执行失败，请检查 dispatcher / gateway 基础层日志。",
-                    safeMessage(exception),
-                    buildConsole(),
-                    false
-            ));
-            dispatchMessage("业务分发示例失败: " + safeMessage(exception));
+                    "业务分发示例",
+                    exception
+            );
         }
     }
 
@@ -600,7 +584,7 @@ public class CommunicationDemoViewModel extends BaseViewModel {
     ) {
         clearConsole();
         consoleProducer.accept(this::appendConsole);
-        uiStateLiveData.setValue(new CommunicationDemoUiState(
+        updateScenarioState(
                 statusText,
                 title,
                 meaningText,
@@ -608,7 +592,50 @@ public class CommunicationDemoViewModel extends BaseViewModel {
                 flowText,
                 buildConsole(),
                 true
+        );
+    }
+
+    private void updateScenarioState(
+            @NonNull String statusText,
+            @NonNull String title,
+            @NonNull String meaningText,
+            @NonNull String exampleText,
+            @NonNull String flowText,
+            @NonNull String consoleText,
+            boolean success
+    ) {
+        uiStateLiveData.setValue(new CommunicationDemoUiState(
+                statusText,
+                title,
+                meaningText,
+                exampleText,
+                flowText,
+                consoleText,
+                success
         ));
+    }
+
+    private void renderFailureScenario(
+            @NonNull String statusText,
+            @NonNull String title,
+            @NonNull String meaningText,
+            @NonNull String exampleText,
+            @NonNull String scenarioLabel,
+            @NonNull Exception exception
+    ) {
+        String errorMessage = safeMessage(exception);
+        appendConsole(scenarioLabel + "失败: " + errorMessage);
+        DLog.e(TAG, "运行" + scenarioLabel + "失败", exception);
+        updateScenarioState(
+                statusText,
+                title,
+                meaningText,
+                exampleText,
+                errorMessage,
+                buildConsole(),
+                false
+        );
+        dispatchMessage(scenarioLabel + "失败: " + errorMessage);
     }
 
     @NonNull

@@ -19,26 +19,45 @@ public class DemoMvvmActivity extends BaseMvvmActivity<ActivityDemoMvvmBinding, 
 
     @Override
     protected void initWidgets(@Nullable Bundle savedInstanceState) {
-        getStatusBarUI().setLightMode();
-        getPageTitleUI().initTitle(getString(R.string.demo_mvvm_title));
-        getPageTitleUI().initTvRight(getString(R.string.demo_common_intro), v -> showIntroDialog());
-
-        binding.btnRefreshFromActivity.setOnClickListener(v -> viewModel.refreshRecords());
-        binding.btnAddRecordFromActivity.setOnClickListener(v -> viewModel.addMockRecord());
-
-        if (savedInstanceState == null) {
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(binding.fragmentContainer.getId(), new DemoFeatureFragment())
-                    .commit();
-        }
+        initPageChrome();
+        bindActivityActions();
+        attachFeatureFragmentIfNeeded(savedInstanceState);
     }
 
     @Override
     protected void observeUi() {
         super.observeUi();
-        viewModel.getSummaryLiveData().observe(this, summary -> binding.tvSummary.setText(summary));
-        viewModel.getPermissionStateLiveData().observe(this, state -> binding.tvPermissionState.setText(state));
+        viewModel.getSummaryLiveData().observe(this, this::renderSummary);
+        viewModel.getPermissionStateLiveData().observe(this, this::renderPermissionState);
+    }
+
+    private void initPageChrome() {
+        getStatusBarUI().setLightMode();
+        getPageTitleUI().initTitle(getString(R.string.demo_mvvm_title));
+        getPageTitleUI().initTvRight(getString(R.string.demo_common_intro), v -> showIntroDialog());
+    }
+
+    private void bindActivityActions() {
+        binding.btnRefreshFromActivity.setOnClickListener(v -> viewModel.refreshRecords());
+        binding.btnAddRecordFromActivity.setOnClickListener(v -> viewModel.addMockRecord());
+    }
+
+    private void attachFeatureFragmentIfNeeded(@Nullable Bundle savedInstanceState) {
+        if (savedInstanceState != null) {
+            return;
+        }
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(binding.fragmentContainer.getId(), new DemoFeatureFragment())
+                .commit();
+    }
+
+    private void renderSummary(@NonNull String summary) {
+        binding.tvSummary.setText(summary);
+    }
+
+    private void renderPermissionState(@NonNull String state) {
+        binding.tvPermissionState.setText(state);
     }
 
     private void showIntroDialog() {

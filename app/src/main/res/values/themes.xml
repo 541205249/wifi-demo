@@ -31,4 +31,108 @@
     <style name="Widget.Optometry.Button" parent="Widget.Material3.Button">
         <item name="cornerRadius">14dp</item>
     </style>
+
+    <style name="Widget.Optometry.SideButton" parent="Widget.Material3.Button">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">52dp</item>
+        <item name="android:layout_marginBottom">10dp</item>
+        <item name="backgroundTint">@color/workbench_header_chip</item>
+        <item name="android:textColor">@color/workbench_page_background</item>
+        <item name="cornerRadius">18dp</item>
+        <item name="strokeWidth">0dp</item>
+    </style>
+
+    <style name="Widget.Optometry.SideButtonSecondary" parent="Widget.Material3.Button">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">48dp</item>
+        <item name="android:layout_marginTop">8dp</item>
+        <item name="backgroundTint">@color/workbench_soft_surface</item>
+        <item name="android:textColor">@color/workbench_text_primary</item>
+        <item name="cornerRadius">18dp</item>
+        <item name="strokeWidth">0dp</item>
+    </style>
+
+    <style name="Widget.Optometry.InlineSelector" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/workbench_header_chip</item>
+        <item name="android:textColor">@color/workbench_page_background</item>
+        <item name="cornerRadius">18dp</item>
+        <item name="strokeWidth">0dp</item>
+    </style>
+
+    <style name="Widget.Optometry.PrimaryAction" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/workbench_accent</item>
+        <item name="android:textColor">@color/workbench_on_primary</item>
+        <item name="cornerRadius">18dp</item>
+        <item name="strokeWidth">0dp</item>
+    </style>
+
+    <style name="Widget.Optometry.SecondaryAction" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/workbench_soft_surface</item>
+        <item name="android:textColor">@color/workbench_text_primary</item>
+        <item name="cornerRadius">18dp</item>
+        <item name="strokeWidth">0dp</item>
+    </style>
+
+    <style name="Widget.Optometry.MetricRow" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">10dp</item>
+        <item name="android:background">@color/workbench_soft_surface</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:orientation">horizontal</item>
+        <item name="android:paddingStart">14dp</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingEnd">14dp</item>
+        <item name="android:paddingBottom">12dp</item>
+    </style>
+
+    <style name="Widget.Optometry.MetricLabel" parent="">
+        <item name="android:layout_width">88dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">@color/workbench_text_muted</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Widget.Optometry.MetricValue" parent="">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:gravity">end</item>
+        <item name="android:textColor">@color/workbench_text_primary</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Widget.Optometry.ConsoleButton" parent="Widget.Material3.Button">
+        <item name="android:layout_height">52dp</item>
+        <item name="android:textColor">@color/console_text_dark</item>
+        <item name="backgroundTint">@android:color/transparent</item>
+        <item name="cornerRadius">6dp</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="android:background">@drawable/bg_workbench_action_button</item>
+    </style>
+
+    <style name="Widget.Optometry.ConsoleLeftAction" parent="Widget.Material3.Button">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">52dp</item>
+        <item name="android:layout_marginBottom">12dp</item>
+        <item name="android:textColor">@color/console_text_dark</item>
+        <item name="backgroundTint">@android:color/transparent</item>
+        <item name="cornerRadius">6dp</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="android:background">@drawable/bg_workbench_action_button</item>
+    </style>
+
+    <style name="Widget.Optometry.ConsoleBadge" parent="">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">24dp</item>
+        <item name="android:background">@drawable/bg_workbench_status_badge_idle</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingStart">10dp</item>
+        <item name="android:paddingEnd">10dp</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:textSize">10sp</item>
+    </style>
 </resources>

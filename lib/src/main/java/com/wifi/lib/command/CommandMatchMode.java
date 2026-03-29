@@ -34,20 +34,29 @@ public enum CommandMatchMode {
             return EXACT;
         }
 
-        if ("精确".equals(normalized) || "exact".equals(normalized) || "equals".equals(normalized)) {
+        if (matchesAlias(normalized, "精确", "exact", "equals")) {
             return EXACT;
         }
-        if ("前缀".equals(normalized) || "prefix".equals(normalized) || "startswith".equals(normalized)) {
+        if (matchesAlias(normalized, "前缀", "prefix", "startswith")) {
             return PREFIX;
         }
-        if ("包含".equals(normalized) || "contains".equals(normalized) || "contain".equals(normalized)) {
+        if (matchesAlias(normalized, "包含", "contains", "contain")) {
             return CONTAINS;
         }
-        if ("正则".equals(normalized) || "regex".equals(normalized) || "regexp".equals(normalized)) {
+        if (matchesAlias(normalized, "正则", "regex", "regexp")) {
             return REGEX;
         }
 
         throw new IllegalArgumentException("无法识别的接收匹配方式: " + rawValue);
+    }
+
+    private static boolean matchesAlias(@NonNull String normalized, @NonNull String... aliases) {
+        for (String alias : aliases) {
+            if (alias.equals(normalized)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @NonNull
